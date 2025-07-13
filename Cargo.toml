@@ -1,5 +1,6 @@
 [package]
 name = "pokelookup"
+description = "Look up pokemon details"
 version = "0.1.0"
 edition = "2024"
 
