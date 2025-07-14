@@ -20,8 +20,8 @@ enum SubArgs {
         #[arg(short, long, help="skip API requests for formatted names")]
         fast: bool,
 
-        //#[arg(short, help="recursively check evolution chain")]
-        //recursive: bool,
+        #[arg(short, help="recursively check evolution chain")]
+        recursive: bool,
     },
 
     #[command(name="abilities", about="look up the abilities of a pokemon")]
@@ -67,7 +67,7 @@ async fn get_name(
     client: &rustemon::client::RustemonClient, 
     names: &Vec<rustemon::model::resource::Name>, 
     lang: &str,
-    ) -> Result<String, ()>
+) -> Result<String, ()>
 {
     for n in names.iter() {
         if let Ok(x) = n.language.follow(&client).await && x.name == lang {
@@ -77,42 +77,96 @@ async fn get_name(
     Err(())
 }
 
+async fn get_pokemon_from_chain(
+    client: &rustemon::client::RustemonClient,
+    pokemon: &str,
+    recursive: bool,
+) -> Result<Vec<rustemon::model::pokemon::Pokemon>, ()>
+{
+    let mut result = Vec::new();
+    let pokemon = match pokemon::get_by_name(pokemon, &client).await {
+        Ok(x) => x,
+        Err(_) => return Err(()),
+    };
+
+    if recursive {
+        let species = match pokemon.species.follow(&client).await {
+            Ok(x) => x,
+            Err(_) => return Err(()),
+        };
+        if let Some(chain) = species.evolution_chain {
+            let chain = match chain.follow(&client).await {
+                Ok(x) => x.chain,
+                Err(_) => return Err(()),
+            };
+            if let Ok(x) = pokemon::get_by_name(&chain.species.name, &client).await {
+                result.push(x);
+            }
+            for evo1 in chain.evolves_to.iter() {
+                if let Ok(x) = pokemon::get_by_name(&evo1.species.name, &client).await {
+                    result.push(x);
+                }
+                for evo2 in evo1.evolves_to.iter() {
+                    if let Ok(x) = pokemon::get_by_name(&evo2.species.name, &client).await {
+                        result.push(x);
+                    }
+                }
+            }
+        }
+    }
+    else {
+        result.push(pokemon);
+    }
+
+    Ok(result)
+}
+
 async fn print_types(args: &SubArgs) {
-    let SubArgs::TypeCmd{pokemon, fast, ..} = args else {
+    let SubArgs::TypeCmd{pokemon, fast, recursive, ..} = args else {
         return;
     };
 
     // Create client
     let client = rustemon::client::RustemonClient::default();
 
-    // Create pokemon resource
-    let mon_resource = match pokemon::get_by_name(&pokemon, &client).await {
+    // Create pokemon resources
+    let resources = match get_pokemon_from_chain(&client, &pokemon, *recursive).await {
         Ok(x) => x,
         Err(_) => panic!("error: could not find pokemon {}", pokemon),
     };
 
-    // Get types
-    let types = match future::try_join_all(
-        mon_resource.types.iter().map(async |t| t.type_.follow(&client).await)
-    ).await {
-        Ok(x) => x,
-        Err(_) => panic!("error: could not retrive types for pokemon {}", pokemon),
-    };
-
-    // Print English names
-    let result = if *fast {
-        types.into_iter().map(|t| t.name).collect()
-    }
-    else {
-        match future::try_join_all(types.into_iter().map(|t| t.names).map(
-            async |names| get_name(&client, &names, "en").await
-        )).await {
+    for mon_resource in resources.iter() {
+        // Get types
+        let types = match future::try_join_all(
+            mon_resource.types.iter().map(async |t| t.type_.follow(&client).await)
+        ).await {
             Ok(x) => x,
-            Err(_) => panic!("error: could not find English names for types"),
-        }
-    };
+            Err(_) => panic!("error: could not retrive types for pokemon {}", pokemon),
+        };
 
-    println!("{}: {}", pokemon, result.join("/"));
+        // Print English names
+        let result = if *fast {
+            types.into_iter().map(|t| t.name).collect()
+        }
+        else {
+            match future::try_join_all(types.into_iter().map(|t| t.names).map(
+                async |names| get_name(&client, &names, "en").await
+            )).await {
+                Ok(x) => x,
+                Err(_) => panic!("error: could not find English names for types"),
+            }
+        };
+
+        println!("{}:", 
+            if !fast && let Ok(species) = mon_resource.species.follow(&client).await && let Ok(name) = get_name(&client, &species.names, "en").await {
+                name
+            }
+            else {
+                mon_resource.name.clone()
+            }
+        );
+        println!("  {}", result.join("/"));
+    }
 }
 
 async fn print_abilities(args: &SubArgs) {
@@ -158,7 +212,14 @@ async fn print_abilities(args: &SubArgs) {
             result.push(x + if ab.hidden {" (Hidden)"} else {""});
         }
     }
-    println!("{}:", pokemon);
+    println!("{}:", 
+        if !fast && let Ok(species) = mon_resource.species.follow(&client).await && let Ok(name) = get_name(&client, &species.names, "en").await {
+            name
+        }
+        else {
+            mon_resource.name.clone()
+        }
+    );
     result.iter().enumerate().for_each(|x| println!(" {}. {}", x.0+1, x.1));
 }
 
@@ -224,6 +285,13 @@ async fn print_moves(args: &SubArgs) {
         moves.iter().collect::<Vec<_>>()
     };
     result.reverse();
-    println!("{}:", pokemon);
+    println!("{}:", 
+        if !fast && let Ok(species) = mon_resource.species.follow(&client).await && let Ok(name) = get_name(&client, &species.names, "en").await {
+            name
+        }
+        else {
+            mon_resource.name.clone()
+        }
+    );
     result.iter().for_each(|x| println!(" - {} ({})", x.name, x.level));
 }
