@@ -31,6 +31,9 @@ enum SubArgs {
 
         #[arg(short, long, help="skip API requests for formatted names")]
         fast: bool,
+
+        #[arg(short, help="recursively check evolution chain")]
+        recursive: bool,
     },
 
     #[command(name="moves", about="look up the level-up movesets of a pokemon")]
@@ -52,8 +55,6 @@ enum SubArgs {
 #[tokio::main]
 async fn main() {
     let args = Args::parse();
-
-    println!("{:?}", args);
 
     match args.command {
         SubArgs::TypeCmd{..} => print_types(&args.command).await,
@@ -170,57 +171,59 @@ async fn print_types(args: &SubArgs) {
 }
 
 async fn print_abilities(args: &SubArgs) {
-    let SubArgs::AbilityCmd{pokemon, fast, ..} = args else {
+    let SubArgs::AbilityCmd{pokemon, fast, recursive, ..} = args else {
         return;
     };
 
     // Create client
     let client = rustemon::client::RustemonClient::default();
 
-    // Create pokemon resource
-    let mon_resource = match pokemon::get_by_name(&pokemon, &client).await {
+    // Create pokemon resources
+    let resources = match get_pokemon_from_chain(&client, &pokemon, *recursive).await {
         Ok(x) => x,
         Err(_) => panic!("error: could not find pokemon {}", pokemon),
     };
-
+    
     // Create struct to store ability
     struct Ability {
         hidden: bool,
         ability: rustemon::model::pokemon::Ability,
     }
 
-    // Get abilities
-    let abilities = match future::try_join_all(
-        mon_resource.abilities.iter().map(async |a| {
-            match a.ability.follow(&client).await {
-                Ok(x) => Ok(Ability{hidden: a.is_hidden, ability: x}),
-                Err(_) => Err(()),
-            }
-        })
-    ).await {
-        Ok(x) => x,
-        Err(_) => panic!("error: could not retrive abilities for pokemon {}", pokemon),
-    };
+    for mon_resource in resources.iter() {
+        // Get abilities
+        let abilities = match future::try_join_all(
+            mon_resource.abilities.iter().map(async |a| {
+                match a.ability.follow(&client).await {
+                    Ok(x) => Ok(Ability{hidden: a.is_hidden, ability: x}),
+                    Err(_) => Err(()),
+                }
+            })
+        ).await {
+            Ok(x) => x,
+            Err(_) => panic!("error: could not retrive abilities for pokemon {}", pokemon),
+        };
 
-    // Print English names
-    let mut result = Vec::new();
-    for ab in abilities.into_iter() {
-        if *fast {
-            result.push(ab.ability.name.clone() + if ab.hidden {" (Hidden)"} else {""});
+        // Print English names
+        let mut result = Vec::new();
+        for ab in abilities.into_iter() {
+            if *fast {
+                result.push(ab.ability.name.clone() + if ab.hidden {" (hidden)"} else {""});
+            }
+            else if let Ok(x) = get_name(&client, &ab.ability.names, "en").await {
+                result.push(x + if ab.hidden {" (Hidden)"} else {""});
+            }
         }
-        else if let Ok(x) = get_name(&client, &ab.ability.names, "en").await {
-            result.push(x + if ab.hidden {" (Hidden)"} else {""});
-        }
+        println!("{}:", 
+            if !fast && let Ok(species) = mon_resource.species.follow(&client).await && let Ok(name) = get_name(&client, &species.names, "en").await {
+                name
+            }
+            else {
+                mon_resource.name.clone()
+            }
+        );
+        result.iter().enumerate().for_each(|x| println!(" {}. {}", x.0+1, x.1));
     }
-    println!("{}:", 
-        if !fast && let Ok(species) = mon_resource.species.follow(&client).await && let Ok(name) = get_name(&client, &species.names, "en").await {
-            name
-        }
-        else {
-            mon_resource.name.clone()
-        }
-    );
-    result.iter().enumerate().for_each(|x| println!(" {}. {}", x.0+1, x.1));
 }
 
 async fn print_moves(args: &SubArgs) {
