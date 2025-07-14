@@ -155,7 +155,7 @@ async fn print_abilities(args: &SubArgs) {
             result.push(ab.ability.name.clone() + if ab.hidden {" (Hidden)"} else {""});
         }
         else if let Ok(x) = get_name(&client, &ab.ability.names, "en").await {
-            result.push(x);
+            result.push(x + if ab.hidden {" (Hidden)"} else {""});
         }
     }
     println!("{}: {:?}", pokemon, result);
