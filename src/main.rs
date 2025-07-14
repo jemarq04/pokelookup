@@ -1,4 +1,4 @@
-use clap::Parser;
+use clap::{Parser,Subcommand};
 use futures::future;
 use rustemon::pokemon::*;
 use rustemon::Follow;
@@ -6,11 +6,26 @@ use rustemon::Follow;
 #[derive(Parser, Debug)]
 #[command(about)]
 struct Args {
-    #[arg(help="name of pokemon")]
-    pokemon: String,
+    #[command(subcommand)]
+    command: SubArgs,
+}
 
-    //#[arg(short, help="recursively check evolution chain")]
-    //recursive: bool,
+#[derive(Subcommand,Debug)]
+enum SubArgs {
+    #[command(name="types")]
+    TypeCmd {
+        #[arg(help="name of pokemon")]
+        pokemon: String,
+
+        //#[arg(short, help="recursively check evolution chain")]
+        //recursive: bool,
+    },
+
+    #[command(name="abilities")]
+    AbilityCmd {
+        #[arg(help="name of pokemon")]
+        pokemon: String,
+    },
 }
 
 #[tokio::main]
@@ -19,17 +34,26 @@ async fn main() {
 
     println!("{:?}", args);
 
-    println!("{}: {:?}", args.pokemon, get_types(&args).await);
+    match args.command {
+        SubArgs::TypeCmd{..} => {
+            print_types(&args.command).await;
+        },
+        _ => panic!("error: not yet implemented"),
+    };
 }
 
-async fn get_types(args: &Args) -> Vec<String> {
+async fn print_types(args: &SubArgs) {
+    let SubArgs::TypeCmd{pokemon} = args else {
+        panic!("error: incorrect inputs");
+    };
+
     // Create client
     let client = rustemon::client::RustemonClient::default();
 
     // Create pokemon resource
-    let mon_resource = match pokemon::get_by_name(&args.pokemon, &client).await {
+    let mon_resource = match pokemon::get_by_name(&pokemon, &client).await {
         Ok(x) => x,
-        Err(_) => panic!("error: could not find pokemon {}", args.pokemon),
+        Err(_) => panic!("error: could not find pokemon {}", pokemon),
     };
 
     // Get types
@@ -37,11 +61,11 @@ async fn get_types(args: &Args) -> Vec<String> {
         mon_resource.types.iter().map(async |t| t.type_.follow(&client).await)
     ).await {
         Ok(x) => x,
-        Err(_) => panic!("error: could not retrive types for pokemon {}", args.pokemon),
+        Err(_) => panic!("error: could not retrive types for pokemon {}", pokemon),
     };
 
     // Return English names for types
-    match future::try_join_all(types.into_iter().map(|t| t.names).map(
+    let result = match future::try_join_all(types.into_iter().map(|t| t.names).map(
             async |names| {
                 for n in names.iter() {
                     if n.language.follow(&client).await.unwrap().name == "en" {
@@ -53,5 +77,7 @@ async fn get_types(args: &Args) -> Vec<String> {
     )).await {
         Ok(x) => x,
         Err(_) => panic!("error: could not find English names for types"),
-    }
+    };
+
+    println!("{}: {:?}", pokemon, result);
 }
