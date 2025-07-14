@@ -112,7 +112,7 @@ async fn print_types(args: &SubArgs) {
         }
     };
 
-    println!("{}: {:?}", pokemon, result);
+    println!("{}: {}", pokemon, result.join("/"));
 }
 
 async fn print_abilities(args: &SubArgs) {
@@ -158,7 +158,8 @@ async fn print_abilities(args: &SubArgs) {
             result.push(x + if ab.hidden {" (Hidden)"} else {""});
         }
     }
-    println!("{}: {:?}", pokemon, result);
+    println!("{}:", pokemon);
+    result.iter().enumerate().for_each(|x| println!(" {}. {}", x.0+1, x.1));
 }
 
 async fn print_moves(args: &SubArgs) {
@@ -174,7 +175,7 @@ async fn print_moves(args: &SubArgs) {
         Ok(x) => x,
         Err(_) => panic!("error: could not find pokemon {}", pokemon),
     };
-    
+
     // Create struct to store move
     #[derive(Debug)]
     struct Move {
@@ -223,6 +224,6 @@ async fn print_moves(args: &SubArgs) {
         moves.iter().collect::<Vec<_>>()
     };
     result.reverse();
-    let _temp: Vec<String> = result.iter().map(|x| x.name.clone()).collect();
-    println!("{}: {:?}", pokemon, result);
+    println!("{}:", pokemon);
+    result.iter().for_each(|x| println!(" - {} ({})", x.name, x.level));
 }
