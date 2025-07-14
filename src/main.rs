@@ -17,6 +17,9 @@ enum SubArgs {
         #[arg(help="name of pokemon")]
         pokemon: String,
 
+        #[arg(short, long, help="skip API requests for formatted names")]
+        fast: bool,
+
         //#[arg(short, help="recursively check evolution chain")]
         //recursive: bool,
     },
@@ -25,6 +28,9 @@ enum SubArgs {
     AbilityCmd {
         #[arg(help="name of pokemon")]
         pokemon: String,
+
+        #[arg(short, long, help="skip API requests for formatted names")]
+        fast: bool,
     },
 }
 
@@ -42,7 +48,7 @@ async fn main() {
 }
 
 async fn print_types(args: &SubArgs) {
-    let SubArgs::TypeCmd{pokemon} = args else {
+    let SubArgs::TypeCmd{pokemon, fast, ..} = args else {
         panic!("error: incorrect inputs");
     };
 
@@ -64,7 +70,11 @@ async fn print_types(args: &SubArgs) {
     };
 
     // Print English names
-    let result = match future::try_join_all(types.into_iter().map(|t| t.names).map(
+    let result = if *fast {
+        types.into_iter().map(|t| t.name).collect()
+    }
+    else {
+        match future::try_join_all(types.into_iter().map(|t| t.names).map(
             async |names| {
                 for n in names.iter() {
                     if n.language.follow(&client).await.unwrap().name == "en" {
@@ -73,16 +83,17 @@ async fn print_types(args: &SubArgs) {
                 }
                 Err(())
             }
-    )).await {
-        Ok(x) => x,
-        Err(_) => panic!("error: could not find English names for types"),
+        )).await {
+            Ok(x) => x,
+            Err(_) => panic!("error: could not find English names for types"),
+        }
     };
 
     println!("{}: {:?}", pokemon, result);
 }
 
 async fn print_abilities(args: &SubArgs) {
-    let SubArgs::AbilityCmd{pokemon} = args else {
+    let SubArgs::AbilityCmd{pokemon, fast, ..} = args else {
         panic!("error: incorrect inputs");
     };
 
@@ -117,9 +128,14 @@ async fn print_abilities(args: &SubArgs) {
     // Print English names
     let mut result = Vec::new();
     for ab in abilities.into_iter() {
-        for n in ab.ability.names.iter() {
-            if let Ok(x) = n.language.follow(&client).await && x.name == "en" {
-                result.push(n.name.clone() + if ab.hidden {" (Hidden)"} else {""});
+        if *fast {
+            result.push(ab.ability.name.clone() + if ab.hidden {" (Hidden)"} else {""});
+        }
+        else {
+            for n in ab.ability.names.iter() {
+                if let Ok(x) = n.language.follow(&client).await && x.name == "en" {
+                    result.push(n.name.clone() + if ab.hidden {" (Hidden)"} else {""});
+                }
             }
         }
     }
