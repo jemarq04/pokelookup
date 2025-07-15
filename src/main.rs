@@ -12,7 +12,8 @@ struct Args {
 
 #[derive(Subcommand,Debug)]
 enum SubArgs {
-    #[command(name="types", about="look up the types of a pokemon")]
+    /// Look up the type(s) of a given pokemon.
+    #[command(name="types", about="look up the types of a pokemon", long_about)]
     TypeCmd {
         #[arg(help="name of pokemon")]
         pokemon: String,
@@ -24,7 +25,9 @@ enum SubArgs {
         recursive: bool,
     },
 
-    #[command(name="abilities", about="look up the abilities of a pokemon")]
+    /// Look up the abilities of a given pokemon. If the ability is a hidden ability, it will be
+    /// marked accordingly.
+    #[command(name="abilities", about="look up the abilities of a pokemon", long_about)]
     AbilityCmd {
         #[arg(help="name of pokemon")]
         pokemon: String,
@@ -36,7 +39,10 @@ enum SubArgs {
         recursive: bool,
     },
 
-    #[command(name="moves", about="look up the level-up movesets of a pokemon")]
+    /// Look up the level-up moveset of a given pokemon. If a level is provided
+    /// then the four moves at or below the given level are provided. By default, this will
+    /// retrieve the moveset from the Scarlet/Violet version group.
+    #[command(name="moves", about="look up the level-up movesets of a pokemon", long_about)]
     MoveCmd {
         #[arg(help="name of pokemon")]
         pokemon: String,
@@ -51,7 +57,8 @@ enum SubArgs {
         level: Option<i64>,
     },
     
-    #[command(name="eggs", about="look up the egg groups of a pokemon")]
+    /// Look up the egg groups of a given pokemon species.
+    #[command(name="eggs", about="look up the egg groups of a pokemon", long_about)]
     EggCmd {
         #[arg(help="name of pokemon")]
         pokemon: String,
