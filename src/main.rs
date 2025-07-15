@@ -50,6 +50,15 @@ enum SubArgs {
         #[arg(short, long, help="request default moveset at given level")]
         level: Option<i64>,
     },
+    
+    #[command(name="eggs", about="look up the egg groups of a pokemon")]
+    EggCmd {
+        #[arg(help="name of pokemon")]
+        pokemon: String,
+
+        #[arg(short, long, help="skip API requests for formatted names")]
+        fast: bool,
+    },
 }
 
 #[tokio::main]
@@ -60,6 +69,7 @@ async fn main() {
         SubArgs::TypeCmd{..} => print_types(&args.command).await,
         SubArgs::AbilityCmd{..} => print_abilities(&args.command).await,
         SubArgs::MoveCmd{..} => print_moves(&args.command).await,
+        SubArgs::EggCmd{..} => print_eggs(&args.command).await,
         //_ => panic!("error: not yet implemented"),
     };
 }
@@ -297,4 +307,50 @@ async fn print_moves(args: &SubArgs) {
         }
     );
     result.iter().for_each(|x| println!(" - {} ({})", x.name, x.level));
+}
+
+async fn print_eggs(args: &SubArgs) {
+    let SubArgs::EggCmd{pokemon, fast, ..} = args else {
+        return;
+    };
+    
+    // Create client
+    let client = rustemon::client::RustemonClient::default();
+
+    // Create pokemon resources
+    let species_resource = match pokemon_species::get_by_name(&pokemon, &client).await {
+        Ok(x) => x,
+        Err(_) => panic!("error: could not find pokemon species {}", pokemon),
+    };
+    
+    // Get egg groups
+    let eggs = match future::try_join_all(
+        species_resource.egg_groups.iter().map(async |g| g.follow(&client).await)
+    ).await {
+        Ok(x) => x,
+        Err(_) => panic!("error: could not retrive egg groups for pokemon {}", pokemon),
+    };
+
+    // Print English names
+    let result = if *fast {
+        eggs.into_iter().map(|g| g.name).collect()
+    }
+    else {
+        match future::try_join_all(eggs.into_iter().map(|g| g.names).map(
+            async |names| get_name(&client, &names, "en").await
+        )).await {
+            Ok(x) => x,
+            Err(_) => panic!("error: could not find English names for egg groups"),
+        }
+    };
+
+    println!("{}:", 
+        if !fast && let Ok(name) = get_name(&client, &species_resource.names, "en").await {
+            name
+        }
+        else {
+            species_resource.name.clone()
+        }
+    );
+    result.iter().for_each(|x| println!(" - {}", x));
 }
