@@ -1,4 +1,4 @@
-use clap::{Parser,Subcommand};
+use clap::{Parser,Subcommand,ValueEnum};
 use futures::future;
 use rustemon::pokemon::*;
 use rustemon::Follow;
@@ -50,8 +50,9 @@ enum SubArgs {
         #[arg(short, long, help="skip API requests for formatted names")]
         fast: bool,
 
-        #[arg(short, long, default_value_t=String::from("scarlet-violet"), help="version group name")]
-        version: String,
+        #[arg(value_enum, short, long, default_value_t=VersionGroup::ScarletViolet, 
+            hide_possible_values=true, help="version group name")]
+        vgroup: VersionGroup,
 
         #[arg(short, long, help="request default moveset at given level")]
         level: Option<i64>,
@@ -66,6 +67,46 @@ enum SubArgs {
         #[arg(short, long, help="skip API requests for formatted names")]
         fast: bool,
     },
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, ValueEnum)]
+enum VersionGroup {
+    RedBlue,
+    Yellow,
+    GoldSilver,
+    Crystal,
+    RubySapphire,
+    Emerald,
+    FireredLeafgreen,
+    Colusseum,
+    #[value(alias="xd")]
+    XD,
+    DiamondPearl,
+    Platinum,
+    HeartgoldSoulsilver,
+    BlackWhite,
+    Black2White2,
+    XY,
+    OmegaRubyAlphaSapphire,
+    SunMoon,
+    UltraSunUltraMoon,
+    LetsGoPikachuLetsGoEevee,
+    SwordShield,
+    TheIsleOfArmor,
+    TheCrownTundra,
+    BrilliantDiamondShiningPearl,
+    LegendsArceus,
+    ScarletViolet,
+    TheTealMask,
+    TheIndigoDisk,
+}
+impl std::fmt::Display for VersionGroup {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.to_possible_value()
+            .expect("no values are skipped")
+            .get_name()
+            .fmt(f)
+    }
 }
 
 #[tokio::main]
@@ -244,7 +285,7 @@ async fn print_abilities(args: &SubArgs) {
 }
 
 async fn print_moves(args: &SubArgs) {
-    let SubArgs::MoveCmd{pokemon, fast, version, level, ..} = args else {
+    let SubArgs::MoveCmd{pokemon, fast, vgroup, level, ..} = args else {
         return;
     };
     
@@ -268,7 +309,7 @@ async fn print_moves(args: &SubArgs) {
     let mut moves = Vec::new();
     for move_resource in mon_resource.moves.iter() {
         for details in move_resource.version_group_details.iter() {
-            if details.move_learn_method.name == "level-up" && details.version_group.name == *version {
+            if details.move_learn_method.name == "level-up" && details.version_group.name == format!("{}", *vgroup) {
                 match *level {
                     Some(x) if details.level_learned_at > x => {},
                     _ => {
