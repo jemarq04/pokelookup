@@ -6,6 +6,9 @@ use rustemon::Follow;
 #[derive(Parser, Debug)]
 #[command(about)]
 struct Args {
+    #[arg(long, hide=true)]
+    test: bool,
+
     #[command(subcommand)]
     command: SubArgs,
 }
@@ -112,6 +115,9 @@ impl std::fmt::Display for VersionGroup {
 #[tokio::main]
 async fn main() {
     let args = Args::parse();
+    if args.test {
+        println!("{:?}", args);
+    }
 
     match args.command {
         SubArgs::TypeCmd{..} => print_types(&args.command).await,
