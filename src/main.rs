@@ -64,7 +64,17 @@ enum SubArgs {
     /// Look up the egg groups of a given pokemon species.
     #[command(name="eggs", about="look up the egg groups of a pokemon", long_about)]
     EggCmd {
-        #[arg(help="name of pokemon")]
+        #[arg(help="name of pokemon species")]
+        pokemon: String,
+
+        #[arg(short, long, help="skip API requests for formatted names")]
+        fast: bool,
+    },
+
+    /// Look up the gender ratio of a given pokemon species.
+    #[command(name="genders", about="look up the gender ratio of a pokemon", long_about)]
+    GenderCmd {
+        #[arg(help="name of pokemon species")]
         pokemon: String,
 
         #[arg(short, long, help="skip API requests for formatted names")]
@@ -124,7 +134,7 @@ async fn main() {
         SubArgs::AbilityCmd{..} => print_abilities(&args.command).await,
         SubArgs::MoveCmd{..} => print_moves(&args.command).await,
         SubArgs::EggCmd{..} => print_eggs(&args.command).await,
-        //_ => panic!("error: not yet implemented"),
+        SubArgs::GenderCmd{..} => print_genders(&args.command).await,
     };
 }
 
@@ -407,4 +417,36 @@ async fn print_eggs(args: &SubArgs) {
         }
     );
     result.iter().for_each(|x| println!(" - {}", x));
+}
+
+async fn print_genders(args: &SubArgs) {
+    let SubArgs::GenderCmd{pokemon, fast, ..} = args else {
+        return;
+    };
+    
+    // Create client
+    let client = rustemon::client::RustemonClient::default();
+
+    // Create pokemon resources
+    let species_resource = match pokemon_species::get_by_name(&pokemon, &client).await {
+        Ok(x) => x,
+        Err(_) => panic!("error: could not find pokemon species {}", pokemon),
+    };
+    
+    println!("{}:", 
+        if !fast && let Ok(name) = get_name(&client, &species_resource.names, "en").await {
+            name
+        }
+        else {
+            species_resource.name.clone()
+        }
+    );
+    let rate = species_resource.gender_rate as f64 /8.0*100.0;
+    if rate < 0.0 {
+        println!(" Genderless");
+    }
+    else {
+        println!(" M: {:>5.1}", 100.0-rate);
+        println!(" F: {:>5.1}", rate);
+    }
 }
