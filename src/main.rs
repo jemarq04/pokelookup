@@ -96,6 +96,26 @@ enum SubArgs {
     #[arg(short, long, help = "skip API requests for formatted names")]
     fast: bool,
   },
+
+  /// Look up the encounters for a given pokemon and version.
+  #[command(
+    name = "encounters",
+    about = "look up encounters for a pokemon",
+    long_about
+  )]
+  EncounterCmd {
+    #[arg(help = "name of version")]
+    version: String,
+
+    #[arg(help = "name of pokemon")]
+    pokemon: String,
+
+    #[arg(short, long, help = "skip API requests for formatted names")]
+    fast: bool,
+
+    #[arg(short, help = "recursively check evolution chain")]
+    recursive: bool,
+  },
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, ValueEnum)]
@@ -152,6 +172,7 @@ async fn main() {
     SubArgs::MoveCmd { .. } => print_moves(&args.command).await,
     SubArgs::EggCmd { .. } => print_eggs(&args.command).await,
     SubArgs::GenderCmd { .. } => print_genders(&args.command).await,
+    SubArgs::EncounterCmd { .. } => print_encounters(&args.command).await,
   };
 }
 
@@ -518,5 +539,71 @@ async fn print_genders(args: &SubArgs) {
   } else {
     println!(" M: {:>5.1}", 100.0 - rate);
     println!(" F: {:>5.1}", rate);
+  }
+}
+
+async fn print_encounters(args: &SubArgs) {
+  let SubArgs::EncounterCmd {
+    version,
+    pokemon,
+    fast,
+    recursive,
+    ..
+  } = args
+  else {
+    return;
+  };
+
+  // Create client
+  let client = rustemon::client::RustemonClient::default();
+
+  // Create pokemon resources
+  let resources = match get_pokemon_from_chain(&client, &pokemon, *recursive).await {
+    Ok(x) => x,
+    Err(_) => panic!("error: could not find pokemon {}", pokemon),
+  };
+
+  for mon_resource in resources.iter() {
+    println!(
+      "{}:",
+      if !fast
+        && let Ok(species) = mon_resource.species.follow(&client).await
+        && let Ok(name) = get_name(&client, &species.names, "en").await
+      {
+        name
+      } else {
+        mon_resource.name.clone()
+      }
+    );
+    let encounters: Vec<rustemon::model::pokemon::LocationAreaEncounter> = if let Ok(mut x) =
+      ureq::get(mon_resource.location_area_encounters.clone()).call()
+      && let Ok(y) = x.body_mut().read_to_string()
+    {
+      serde_json::from_str(&y).expect("JSON was not well formatted")
+    } else {
+      panic!(
+        "error: could not follow url for encounters for pokemon {}",
+        pokemon
+      );
+    };
+
+    let mut result = Vec::new();
+    for enc in encounters.iter() {
+      for det in enc.version_details.iter() {
+        if det.version.name == *version {
+          result.push(if *fast {
+            enc.location_area.name.clone()
+          } else if let Ok(x) = enc.location_area.follow(&client).await
+            && let Ok(y) = get_name(&client, &x.names, "en").await
+          {
+            y
+          } else {
+            panic!("error: could not find location area name");
+          });
+          break;
+        }
+      }
+    }
+    result.into_iter().for_each(|x| println!(" - {}", x));
   }
 }
