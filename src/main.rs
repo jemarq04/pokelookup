@@ -274,7 +274,10 @@ async fn print_varieties(args: &SubArgs) {
       species_resource.name.clone()
     }
   );
-  species_resource.varieties.iter().for_each(|x| println!(" - {}", x.pokemon.name));
+  species_resource
+    .varieties
+    .iter()
+    .for_each(|x| println!(" - {}", x.pokemon.name));
 }
 
 async fn print_types(args: &SubArgs) {
