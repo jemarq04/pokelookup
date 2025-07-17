@@ -3,8 +3,11 @@ use futures::future;
 use rustemon::Follow;
 use rustemon::pokemon::*;
 
+/// Look up pokemon details using PokeAPI using the 'rustemon' wrapper. Note that sometimes pokemon need to be listed
+/// with their forms if the form is distinct enough (e.g. pumkaboo-small or toxtricity-amped). These varieties can be
+/// listed using the 'list' subcommand.
 #[derive(Parser, Debug)]
-#[command(about)]
+#[command(long_about)]
 struct Args {
   #[arg(long, hide = true)]
   test: bool,
