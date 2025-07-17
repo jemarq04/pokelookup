@@ -15,6 +15,20 @@ struct Args {
 
 #[derive(Subcommand, Debug)]
 enum SubArgs {
+  /// Look up the varieties of a given pokemon.
+  #[command(
+    name = "list",
+    about = "look up the varieties of a pokemon",
+    long_about
+  )]
+  ListCmd {
+    #[arg(help = "name of pokemon species")]
+    pokemon: String,
+
+    #[arg(short, long, help = "skip API requests for formatted names")]
+    fast: bool,
+  },
+
   /// Look up the type(s) of a given pokemon.
   #[command(name = "types", about = "look up the types of a pokemon", long_about)]
   TypeCmd {
@@ -167,6 +181,7 @@ async fn main() {
   }
 
   match args.command {
+    SubArgs::ListCmd { .. } => print_varieties(&args.command).await,
     SubArgs::TypeCmd { .. } => print_types(&args.command).await,
     SubArgs::AbilityCmd { .. } => print_abilities(&args.command).await,
     SubArgs::MoveCmd { .. } => print_moves(&args.command).await,
@@ -231,6 +246,32 @@ async fn get_pokemon_from_chain(
   }
 
   Ok(result)
+}
+
+async fn print_varieties(args: &SubArgs) {
+  let SubArgs::ListCmd { pokemon, fast, .. } = args else {
+    return;
+  };
+
+  // Create client
+  let client = rustemon::client::RustemonClient::default();
+
+  // Create pokemon resources
+  let species_resource = match pokemon_species::get_by_name(&pokemon, &client).await {
+    Ok(x) => x,
+    Err(_) => panic!("error: could not find pokemon species {}", pokemon),
+  };
+
+  // Print varieties
+  println!(
+    "{}:",
+    if !fast && let Ok(name) = get_name(&client, &species_resource.names, "en").await {
+      name
+    } else {
+      species_resource.name.clone()
+    }
+  );
+  species_resource.varieties.iter().for_each(|x| println!(" - {}", x.pokemon.name));
 }
 
 async fn print_types(args: &SubArgs) {
