@@ -20,4 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: cargo test --all-features
+      - name: Building
+        run: cargo build
+      - name: Testing
+        run: cargo test --all-features
