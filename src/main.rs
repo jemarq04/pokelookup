@@ -183,7 +183,7 @@ async fn main() {
     println!("{:?}", args);
   }
 
-  match args.command {
+  let result = match args.command {
     SubArgs::ListCmd { .. } => print_varieties(&args.command).await,
     SubArgs::TypeCmd { .. } => print_types(&args.command).await,
     SubArgs::AbilityCmd { .. } => print_abilities(&args.command).await,
@@ -191,6 +191,11 @@ async fn main() {
     SubArgs::EggCmd { .. } => print_eggs(&args.command).await,
     SubArgs::GenderCmd { .. } => print_genders(&args.command).await,
     SubArgs::EncounterCmd { .. } => print_encounters(&args.command).await,
+  };
+
+  match result {
+    Ok(s) => s.iter().for_each(|x| println!("{}", x)),
+    Err(err) => err.exit(),
   };
 }
 
@@ -251,9 +256,9 @@ async fn get_pokemon_from_chain(
   Ok(result)
 }
 
-async fn print_varieties(args: &SubArgs) {
+async fn print_varieties(args: &SubArgs) -> Result<Vec<String>, clap::error::Error> {
   let SubArgs::ListCmd { pokemon, fast, .. } = args else {
-    return;
+    return Err(Args::command().error(ErrorKind::InvalidValue, "invalid arguments for subcommand"));
   };
 
   // Create client
@@ -266,21 +271,24 @@ async fn print_varieties(args: &SubArgs) {
   };
 
   // Print varieties
-  println!(
+  let mut result = Vec::new();
+  result.push(format!(
     "{}:",
     if !fast && let Ok(name) = get_name(&client, &species_resource.names, "en").await {
       name
     } else {
       species_resource.name.clone()
     }
-  );
+  ));
   species_resource
     .varieties
     .iter()
-    .for_each(|x| println!(" - {}", x.pokemon.name));
+    .for_each(|x| result.push(format!(" - {}", x.pokemon.name)));
+
+  Ok(result)
 }
 
-async fn print_types(args: &SubArgs) {
+async fn print_types(args: &SubArgs) -> Result<Vec<String>, clap::error::Error> {
   let SubArgs::TypeCmd {
     pokemon,
     fast,
@@ -288,7 +296,7 @@ async fn print_types(args: &SubArgs) {
     ..
   } = args
   else {
-    return;
+    return Err(Args::command().error(ErrorKind::InvalidValue, "invalid arguments for subcommand"));
   };
 
   // Create client
@@ -300,6 +308,7 @@ async fn print_types(args: &SubArgs) {
     Err(_) => panic!("error: could not find pokemon {}", pokemon),
   };
 
+  let mut result = Vec::new();
   for mon_resource in resources.iter() {
     // Get types
     let types = match future::try_join_all(
@@ -315,7 +324,7 @@ async fn print_types(args: &SubArgs) {
     };
 
     // Print English names
-    let result = if *fast {
+    let types = if *fast {
       types.into_iter().map(|t| t.name).collect()
     } else {
       match future::try_join_all(
@@ -331,7 +340,7 @@ async fn print_types(args: &SubArgs) {
       }
     };
 
-    println!(
+    result.push(format!(
       "{}:",
       if !fast
         && let Ok(species) = mon_resource.species.follow(&client).await
@@ -341,12 +350,14 @@ async fn print_types(args: &SubArgs) {
       } else {
         mon_resource.name.clone()
       }
-    );
-    println!("  {}", result.join("/"));
+    ));
+    result.push(format!("  {}", types.join("/")));
   }
+
+  Ok(result)
 }
 
-async fn print_abilities(args: &SubArgs) {
+async fn print_abilities(args: &SubArgs) -> Result<Vec<String>, clap::error::Error> {
   let SubArgs::AbilityCmd {
     pokemon,
     fast,
@@ -354,7 +365,7 @@ async fn print_abilities(args: &SubArgs) {
     ..
   } = args
   else {
-    return;
+    return Err(Args::command().error(ErrorKind::InvalidValue, "invalid arguments for subcommand"));
   };
 
   // Create client
@@ -372,6 +383,7 @@ async fn print_abilities(args: &SubArgs) {
     ability: rustemon::model::pokemon::Ability,
   }
 
+  let mut result = Vec::new();
   for mon_resource in resources.iter() {
     // Get abilities
     let abilities = match future::try_join_all(mon_resource.abilities.iter().map(async |a| {
@@ -390,15 +402,15 @@ async fn print_abilities(args: &SubArgs) {
     };
 
     // Print English names
-    let mut result = Vec::new();
+    let mut names = Vec::new();
     for ab in abilities.into_iter() {
       if *fast {
-        result.push(ab.ability.name.clone() + if ab.hidden { " (hidden)" } else { "" });
+        names.push(ab.ability.name.clone() + if ab.hidden { " (hidden)" } else { "" });
       } else if let Ok(x) = get_name(&client, &ab.ability.names, "en").await {
-        result.push(x + if ab.hidden { " (Hidden)" } else { "" });
+        names.push(x + if ab.hidden { " (Hidden)" } else { "" });
       }
     }
-    println!(
+    result.push(format!(
       "{}:",
       if !fast
         && let Ok(species) = mon_resource.species.follow(&client).await
@@ -408,15 +420,16 @@ async fn print_abilities(args: &SubArgs) {
       } else {
         mon_resource.name.clone()
       }
-    );
-    result
+    ));
+    names
       .iter()
       .enumerate()
-      .for_each(|x| println!(" {}. {}", x.0 + 1, x.1));
+      .for_each(|x| result.push(format!(" {}. {}", x.0 + 1, x.1)));
   }
+  Ok(result)
 }
 
-async fn print_moves(args: &SubArgs) {
+async fn print_moves(args: &SubArgs) -> Result<Vec<String>, clap::error::Error> {
   let SubArgs::MoveCmd {
     pokemon,
     fast,
@@ -425,7 +438,7 @@ async fn print_moves(args: &SubArgs) {
     ..
   } = args
   else {
-    return;
+    return Err(Args::command().error(ErrorKind::InvalidValue, "invalid arguments for subcommand"));
   };
 
   // Create client
@@ -478,13 +491,15 @@ async fn print_moves(args: &SubArgs) {
   moves.sort_by(|m, n| n.level.cmp(&m.level));
 
   // Print result
-  let mut result = if let Some(_) = *level {
+  let mut moves = if let Some(_) = *level {
     moves.iter().take(4).collect::<Vec<_>>()
   } else {
     moves.iter().collect::<Vec<_>>()
   };
-  result.reverse();
-  println!(
+  moves.reverse();
+
+  let mut result = Vec::new();
+  result.push(format!(
     "{}:",
     if !fast
       && let Ok(species) = mon_resource.species.follow(&client).await
@@ -494,15 +509,17 @@ async fn print_moves(args: &SubArgs) {
     } else {
       mon_resource.name.clone()
     }
-  );
-  result
+  ));
+  moves
     .iter()
-    .for_each(|x| println!(" - {} ({})", x.name, x.level));
+    .for_each(|x| result.push(format!(" - {} ({})", x.name, x.level)));
+
+  Ok(result)
 }
 
-async fn print_eggs(args: &SubArgs) {
+async fn print_eggs(args: &SubArgs) -> Result<Vec<String>, clap::error::Error> {
   let SubArgs::EggCmd { pokemon, fast, .. } = args else {
-    return;
+    return Err(Args::command().error(ErrorKind::InvalidValue, "invalid arguments for subcommand"));
   };
 
   // Create client
@@ -531,7 +548,7 @@ async fn print_eggs(args: &SubArgs) {
   };
 
   // Print English names
-  let result = if *fast {
+  let eggs = if *fast {
     eggs.into_iter().map(|g| g.name).collect()
   } else {
     match future::try_join_all(
@@ -547,20 +564,22 @@ async fn print_eggs(args: &SubArgs) {
     }
   };
 
-  println!(
+  let mut result = Vec::new();
+  result.push(format!(
     "{}:",
     if !fast && let Ok(name) = get_name(&client, &species_resource.names, "en").await {
       name
     } else {
       species_resource.name.clone()
     }
-  );
-  result.iter().for_each(|x| println!(" - {}", x));
+  ));
+  eggs.iter().for_each(|x| result.push(format!(" - {}", x)));
+  Ok(result)
 }
 
-async fn print_genders(args: &SubArgs) {
+async fn print_genders(args: &SubArgs) -> Result<Vec<String>, clap::error::Error> {
   let SubArgs::GenderCmd { pokemon, fast, .. } = args else {
-    return;
+    return Err(Args::command().error(ErrorKind::InvalidValue, "invalid arguments for subcommand"));
   };
 
   // Create client
@@ -572,24 +591,27 @@ async fn print_genders(args: &SubArgs) {
     Err(_) => panic!("error: could not find pokemon species {}", pokemon),
   };
 
-  println!(
+  let mut result = Vec::new();
+  result.push(format!(
     "{}:",
     if !fast && let Ok(name) = get_name(&client, &species_resource.names, "en").await {
       name
     } else {
       species_resource.name.clone()
     }
-  );
+  ));
   let rate = species_resource.gender_rate as f64 / 8.0 * 100.0;
   if rate < 0.0 {
-    println!(" Genderless");
+    result.push(format!(" Genderless"));
   } else {
-    println!(" M: {:>5.1}", 100.0 - rate);
-    println!(" F: {:>5.1}", rate);
+    result.push(format!(" M: {:>5.1}", 100.0 - rate));
+    result.push(format!(" F: {:>5.1}", rate));
   }
+
+  Ok(result)
 }
 
-async fn print_encounters(args: &SubArgs) {
+async fn print_encounters(args: &SubArgs) -> Result<Vec<String>, clap::error::Error> {
   let SubArgs::EncounterCmd {
     version,
     pokemon,
@@ -598,7 +620,7 @@ async fn print_encounters(args: &SubArgs) {
     ..
   } = args
   else {
-    return;
+    return Err(Args::command().error(ErrorKind::InvalidValue, "invalid arguments for subcommand"));
   };
 
   // Create client
@@ -610,19 +632,9 @@ async fn print_encounters(args: &SubArgs) {
     Err(_) => panic!("error: could not find pokemon {}", pokemon),
   };
 
+  let mut result = Vec::new();
   for mon_resource in resources.iter() {
-    println!(
-      "{}:",
-      if !fast
-        && let Ok(species) = mon_resource.species.follow(&client).await
-        && let Ok(name) = get_name(&client, &species.names, "en").await
-      {
-        name
-      } else {
-        mon_resource.name.clone()
-      }
-    );
-    let encounters: Vec<rustemon::model::pokemon::LocationAreaEncounter> = if let Ok(mut x) =
+    let encounter_resources: Vec<rustemon::model::pokemon::LocationAreaEncounter> = if let Ok(mut x) =
       ureq::get(mon_resource.location_area_encounters.clone()).call()
       && let Ok(y) = x.body_mut().read_to_string()
     {
@@ -634,11 +646,11 @@ async fn print_encounters(args: &SubArgs) {
       );
     };
 
-    let mut result = Vec::new();
-    for enc in encounters.iter() {
+    let mut encounters = Vec::new();
+    for enc in encounter_resources.iter() {
       for det in enc.version_details.iter() {
         if det.version.name == *version {
-          result.push(if *fast {
+          encounters.push(if *fast {
             enc.location_area.name.clone()
           } else if let Ok(x) = enc.location_area.follow(&client).await
             && let Ok(y) = get_name(&client, &x.names, "en").await
@@ -651,6 +663,21 @@ async fn print_encounters(args: &SubArgs) {
         }
       }
     }
-    result.into_iter().for_each(|x| println!(" - {}", x));
+    result.push(format!(
+      "{}:",
+      if !fast
+        && let Ok(species) = mon_resource.species.follow(&client).await
+        && let Ok(name) = get_name(&client, &species.names, "en").await
+      {
+        name
+      } else {
+        mon_resource.name.clone()
+      }
+    ));
+    encounters
+      .into_iter()
+      .for_each(|x| result.push(format!(" - {}", x)));
   }
+
+  Ok(result)
 }
