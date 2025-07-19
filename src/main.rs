@@ -1,4 +1,5 @@
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::error::{ContextKind, ContextValue, ErrorKind};
+use clap::{CommandFactory, Parser, Subcommand, ValueEnum};
 use futures::future;
 use rustemon::Follow;
 use rustemon::pokemon::*;
