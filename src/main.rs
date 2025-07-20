@@ -122,8 +122,8 @@ enum SubArgs {
     long_about
   )]
   EncounterCmd {
-    #[arg(help = "name of version")]
-    version: String,
+    #[arg(value_enum, hide_possible_values = true, help = "name of version")]
+    version: Version,
 
     #[arg(help = "name of pokemon")]
     pokemon: String,
@@ -168,6 +168,62 @@ enum VersionGroup {
   TheIndigoDisk,
 }
 impl std::fmt::Display for VersionGroup {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    self
+      .to_possible_value()
+      .expect("no values are skipped")
+      .get_name()
+      .fmt(f)
+  }
+}
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, ValueEnum)]
+enum Version {
+  Red,
+  Blue,
+  Yellow,
+  Gold,
+  Silver,
+  Crystal,
+  Ruby,
+  Sapphire,
+  Emerald,
+  Firered,
+  Leafgreen,
+  Diamond,
+  Pearl,
+  Platinum,
+  Heartgold,
+  Soulsilver,
+  Black,
+  White,
+  Colosseum,
+  #[value(alias = "xd")]
+  XD,
+  Black2,
+  White2,
+  X,
+  Y,
+  OmegaRuby,
+  AlphaSapphire,
+  Sun,
+  Moon,
+  UltraSun,
+  UltraMoon,
+  LetsGoPikachu,
+  LetsGoEevee,
+  Sword,
+  Shield,
+  TheIsleOfArmor,
+  TheCrownTundra,
+  BrilliantDiamond,
+  ShiningPearl,
+  LegendsArceus,
+  Scarlet,
+  Violet,
+  TheTealMask,
+  TheIndigoDisk,
+}
+impl std::fmt::Display for Version {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     self
       .to_possible_value()
@@ -650,7 +706,7 @@ async fn print_encounters(args: &SubArgs) -> Result<Vec<String>, clap::error::Er
     let mut encounters = Vec::new();
     for enc in encounter_resources.iter() {
       for det in enc.version_details.iter() {
-        if det.version.name == *version {
+        if det.version.name == format!("{}", version) {
           encounters.push(if *fast {
             enc.location_area.name.clone()
           } else if let Ok(x) = enc.location_area.follow(&client).await
@@ -924,7 +980,7 @@ mod tests {
 
     for (idx, vals) in success.into_iter().enumerate() {
       let args = SubArgs::EncounterCmd {
-        version: String::from("firered"),
+        version: Version::Firered,
         pokemon: String::from("machop"),
         recursive: false,
         fast: idx == 0,
@@ -968,7 +1024,7 @@ mod tests {
     ];
 
     let args = SubArgs::EncounterCmd {
-      version: String::from("firered"),
+      version: Version::Firered,
       pokemon: String::from("goldeen"),
       fast: true,
       recursive: true,
