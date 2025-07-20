@@ -682,3 +682,301 @@ async fn print_encounters(args: &SubArgs) -> Result<Vec<String>, clap::error::Er
 
   Ok(result)
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[tokio::test]
+  async fn test_varieties() {
+    for fast in vec![false, true].into_iter() {
+      let args = SubArgs::ListCmd {
+        pokemon: String::from("meowth"),
+        fast,
+      };
+
+      match print_varieties(&args).await {
+        Ok(s) => {
+          assert_eq!(
+            s,
+            vec![
+              if fast { "meowth:" } else { "Meowth:" },
+              " - meowth",
+              " - meowth-alola",
+              " - meowth-galar",
+              " - meowth-gmax",
+            ]
+          );
+        },
+        Err(err) => err.exit(),
+      }
+    }
+  }
+
+  #[tokio::test]
+  async fn test_types() {
+    let success: Vec<String> = vec!["Toxel:", "  Electric/Poison"]
+      .into_iter()
+      .map(|x| x.into())
+      .collect();
+
+    for fast in [false, true].into_iter() {
+      let args = SubArgs::TypeCmd {
+        pokemon: String::from("toxel"),
+        fast,
+        recursive: false,
+      };
+
+      match print_types(&args).await {
+        Ok(s) => assert_eq!(
+          s,
+          if fast {
+            success.iter().map(|x| x.to_lowercase()).collect()
+          } else {
+            success.clone()
+          }
+        ),
+        Err(err) => err.exit(),
+      }
+    }
+  }
+
+  #[tokio::test]
+  async fn test_types_recursive() {
+    let success = vec!["stantler:", "  normal", "wyrdeer:", "  normal/psychic"];
+    let args = SubArgs::TypeCmd {
+      pokemon: String::from("stantler"),
+      fast: true,
+      recursive: true,
+    };
+    match print_types(&args).await {
+      Ok(s) => assert_eq!(s, success),
+      Err(err) => err.exit(),
+    }
+  }
+
+  #[tokio::test]
+  async fn test_abilities() {
+    let success: Vec<String> = vec!["Toxel:", " 1. Rattled", " 2. Static", " 3. Klutz (Hidden)"]
+      .into_iter()
+      .map(|x| x.into())
+      .collect();
+
+    for fast in [false, true].into_iter() {
+      let args = SubArgs::AbilityCmd {
+        pokemon: String::from("toxel"),
+        fast,
+        recursive: false,
+      };
+
+      match print_abilities(&args).await {
+        Ok(s) => assert_eq!(
+          s,
+          if fast {
+            success.iter().map(|x| x.to_lowercase()).collect()
+          } else {
+            success.clone()
+          }
+        ),
+        Err(err) => err.exit(),
+      }
+    }
+  }
+
+  #[tokio::test]
+  async fn test_abilities_recursive() {
+    let success = vec![
+      "Stantler:", " 1. Intimidate", " 2. Frisk", " 3. Sap Sipper (Hidden)", "Wyrdeer:",
+      " 1. Intimidate", " 2. Frisk", " 3. Sap Sipper (Hidden)",
+    ];
+
+    let args = SubArgs::AbilityCmd {
+      pokemon: String::from("stantler"),
+      fast: false,
+      recursive: true,
+    };
+
+    match print_abilities(&args).await {
+      Ok(s) => assert_eq!(s, success),
+      Err(err) => err.exit(),
+    }
+  }
+
+  #[tokio::test]
+  async fn test_moves() {
+    let success = vec![
+      vec![
+        "quaxly:", " - water-gun (1)", " - growl (1)", " - pound (1)", " - work-up (7)",
+        " - wing-attack (10)", " - aqua-jet (13)", " - double-hit (17)", " - aqua-cutter (21)",
+        " - air-slash (24)", " - focus-energy (28)", " - acrobatics (31)", " - liquidation (35)",
+      ],
+      vec![
+        "Quaxly:", " - Water Gun (1)", " - Growl (1)", " - Pound (1)", " - Work Up (7)",
+        " - Wing Attack (10)", " - Aqua Jet (13)", " - Double Hit (17)", " - Aqua Cutter (21)",
+        " - Air Slash (24)", " - Focus Energy (28)", " - Acrobatics (31)", " - Liquidation (35)",
+      ],
+    ];
+
+    for (idx, vals) in success.into_iter().enumerate() {
+      let args = SubArgs::MoveCmd {
+        pokemon: String::from("quaxly"),
+        vgroup: VersionGroup::ScarletViolet,
+        level: None,
+        fast: idx == 0,
+      };
+
+      match print_moves(&args).await {
+        Ok(res) => assert_eq!(res, vals),
+        Err(err) => err.exit(),
+      }
+    }
+  }
+
+  #[tokio::test]
+  async fn test_moves_level() {
+    let success = vec![
+      "Quaxly:", " - Double Hit (17)", " - Aqua Cutter (21)", " - Air Slash (24)",
+      " - Focus Energy (28)",
+    ];
+
+    let args = SubArgs::MoveCmd {
+      pokemon: String::from("quaxly"),
+      vgroup: VersionGroup::ScarletViolet,
+      level: Some(30),
+      fast: false,
+    };
+
+    match print_moves(&args).await {
+      Ok(res) => assert_eq!(res, success),
+      Err(err) => err.exit(),
+    }
+  }
+
+  #[tokio::test]
+  async fn test_eggs() {
+    let success = vec![
+      vec!["stantler:", " - ground"],
+      vec!["Stantler:", " - Field"],
+    ];
+
+    for (idx, vals) in success.into_iter().enumerate() {
+      let args = SubArgs::EggCmd {
+        pokemon: String::from("stantler"),
+        fast: idx == 0,
+      };
+
+      match print_eggs(&args).await {
+        Ok(res) => assert_eq!(res, vals),
+        Err(err) => err.exit(),
+      }
+    }
+  }
+  #[tokio::test]
+  async fn test_genders() {
+    for fast in vec![false, true].into_iter() {
+      let args = SubArgs::GenderCmd {
+        pokemon: String::from("meowth"),
+        fast,
+      };
+
+      match print_genders(&args).await {
+        Ok(s) => assert_eq!(
+          s,
+          vec![
+            if fast { "meowth:" } else { "Meowth:" },
+            " M:  50.0",
+            " F:  50.0",
+          ]
+        ),
+        Err(err) => err.exit(),
+      }
+    }
+  }
+
+  #[tokio::test]
+  async fn test_encounters() {
+    let success = vec![
+      vec![
+        "machop:",
+        " - rock-tunnel-1f",
+        " - rock-tunnel-b1f",
+        " - kanto-victory-road-2-1f",
+        " - kanto-victory-road-2-2f",
+        " - kanto-victory-road-2-3f",
+        " - mt-ember-area",
+        " - mt-ember-cave",
+        " - mt-ember-inside",
+        " - mt-ember-1f-cave-behind-team-rocket",
+      ],
+      vec![
+        "Machop:",
+        " - Rock Tunnel (1F)",
+        " - Rock Tunnel (B1F)",
+        " - Victory Road 2 (1F)",
+        " - Victory Road 2 (2F)",
+        " - Victory Road 2 (3F)",
+        " - Mount Ember",
+        " - Mount Ember (cave)",
+        " - Mount Ember (inside)",
+        " - Mount Ember (1F, cave behind team rocket)",
+      ],
+    ];
+
+    for (idx, vals) in success.into_iter().enumerate() {
+      let args = SubArgs::EncounterCmd {
+        version: String::from("firered"),
+        pokemon: String::from("machop"),
+        recursive: false,
+        fast: idx == 0,
+      };
+
+      match print_encounters(&args).await {
+        Ok(res) => assert_eq!(res, vals),
+        Err(err) => err.exit(),
+      }
+    }
+  }
+
+  #[tokio::test]
+  async fn test_encounters_recursive() {
+    let success = vec![
+      "goldeen:",
+      " - viridian-city-area",
+      " - fuchsia-city-area",
+      " - kanto-route-6-area",
+      " - kanto-route-22-area",
+      " - kanto-route-25-area",
+      " - cerulean-cave-1f",
+      " - cerulean-cave-b1f",
+      " - kanto-route-23-area",
+      " - kanto-safari-zone-middle",
+      " - kanto-safari-zone-area-1-east",
+      " - kanto-safari-zone-area-2-north",
+      " - kanto-safari-zone-area-3-west",
+      " - berry-forest-area",
+      " - icefall-cave-entrance",
+      " - cape-brink-area",
+      " - ruin-valley-area",
+      " - four-island-area",
+      "seaking:",
+      " - fuchsia-city-area",
+      " - kanto-safari-zone-middle",
+      " - kanto-safari-zone-area-1-east",
+      " - kanto-safari-zone-area-2-north",
+      " - kanto-safari-zone-area-3-west",
+      " - berry-forest-area",
+    ];
+
+    let args = SubArgs::EncounterCmd {
+      version: String::from("firered"),
+      pokemon: String::from("goldeen"),
+      fast: true,
+      recursive: true,
+    };
+
+    match print_encounters(&args).await {
+      Ok(res) => assert_eq!(res, success),
+      Err(err) => err.exit(),
+    }
+  }
+}
