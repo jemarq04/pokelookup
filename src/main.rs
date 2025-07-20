@@ -271,6 +271,32 @@ async fn get_name(
   Err(())
 }
 
+async fn get_pokemon_name(
+  client: &rustemon::client::RustemonClient,
+  pokemon: &rustemon::model::pokemon::Pokemon,
+  lang: &str,
+) -> Result<String, ()> {
+  let forms =
+    match future::try_join_all(pokemon.forms.iter().map(async |f| f.follow(&client).await)).await {
+      Ok(x) => x,
+      Err(_) => return Err(()),
+    };
+
+  for form in forms.into_iter() {
+    if !form.is_default || form.names.len() == 0 {
+      continue;
+    }
+    return get_name(&client, &form.names, lang).await;
+  }
+
+  let species = match pokemon.species.follow(&client).await {
+    Ok(x) => x,
+    Err(_) => return Err(()),
+  };
+
+  get_name(&client, &species.names, lang).await
+}
+
 async fn get_pokemon_from_chain(
   client: &rustemon::client::RustemonClient,
   pokemon: &str,
@@ -292,16 +318,40 @@ async fn get_pokemon_from_chain(
         Ok(x) => x.chain,
         Err(_) => return Err(()),
       };
-      if let Ok(x) = pokemon::get_by_name(&chain.species.name, &client).await {
-        result.push(x);
+      if let Ok(x) = pokemon_species::get_by_name(&chain.species.name, &client).await {
+        if let Ok(y) = future::try_join_all(
+          x.varieties
+            .iter()
+            .map(async |v| v.pokemon.follow(&client).await),
+        )
+        .await
+        {
+          y.into_iter().for_each(|mon| result.push(mon));
+        }
       }
       for evo1 in chain.evolves_to.iter() {
-        if let Ok(x) = pokemon::get_by_name(&evo1.species.name, &client).await {
-          result.push(x);
+        if let Ok(x) = pokemon_species::get_by_name(&evo1.species.name, &client).await {
+          if let Ok(y) = future::try_join_all(
+            x.varieties
+              .iter()
+              .map(async |v| v.pokemon.follow(&client).await),
+          )
+          .await
+          {
+            y.into_iter().for_each(|mon| result.push(mon));
+          }
         }
         for evo2 in evo1.evolves_to.iter() {
-          if let Ok(x) = pokemon::get_by_name(&evo2.species.name, &client).await {
-            result.push(x);
+          if let Ok(x) = pokemon_species::get_by_name(&evo2.species.name, &client).await {
+            if let Ok(y) = future::try_join_all(
+              x.varieties
+                .iter()
+                .map(async |v| v.pokemon.follow(&client).await),
+            )
+            .await
+            {
+              y.into_iter().for_each(|mon| result.push(mon));
+            }
           }
         }
       }
@@ -399,10 +449,7 @@ async fn print_types(args: &SubArgs) -> Result<Vec<String>, clap::error::Error> 
 
     result.push(format!(
       "{}:",
-      if !fast
-        && let Ok(species) = mon_resource.species.follow(&client).await
-        && let Ok(name) = get_name(&client, &species.names, "en").await
-      {
+      if !fast && let Ok(name) = get_pokemon_name(&client, &mon_resource, "en").await {
         name
       } else {
         mon_resource.name.clone()
@@ -469,11 +516,8 @@ async fn print_abilities(args: &SubArgs) -> Result<Vec<String>, clap::error::Err
     }
     result.push(format!(
       "{}:",
-      if !fast
-        && let Ok(species) = mon_resource.species.follow(&client).await
-        && let Ok(name) = get_name(&client, &species.names, "en").await
-      {
-        name
+      if !fast && let Ok(x) = get_pokemon_name(&client, &mon_resource, "en").await {
+        x
       } else {
         mon_resource.name.clone()
       }
@@ -558,10 +602,7 @@ async fn print_moves(args: &SubArgs) -> Result<Vec<String>, clap::error::Error> 
   let mut result = Vec::new();
   result.push(format!(
     "{}:",
-    if !fast
-      && let Ok(species) = mon_resource.species.follow(&client).await
-      && let Ok(name) = get_name(&client, &species.names, "en").await
-    {
+    if !fast && let Ok(name) = get_pokemon_name(&client, &mon_resource, "en").await {
       name
     } else {
       mon_resource.name.clone()
@@ -722,10 +763,7 @@ async fn print_encounters(args: &SubArgs) -> Result<Vec<String>, clap::error::Er
     }
     result.push(format!(
       "{}:",
-      if !fast
-        && let Ok(species) = mon_resource.species.follow(&client).await
-        && let Ok(name) = get_name(&client, &species.names, "en").await
-      {
+      if !fast && let Ok(name) = get_pokemon_name(&client, &mon_resource, "en").await {
         name
       } else {
         mon_resource.name.clone()
