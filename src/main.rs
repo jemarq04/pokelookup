@@ -251,6 +251,7 @@ async fn main() {
   };
 
   match result {
+    Ok(s) if s.len() == 0 => println!("No results found."),
     Ok(s) => s.iter().for_each(|x| println!("{}", x)),
     Err(err) => err.exit(),
   };
