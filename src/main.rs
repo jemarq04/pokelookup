@@ -7,7 +7,6 @@ use rustemon::Follow;
 use rustemon::pokemon::*;
 use utils::*;
 
-
 #[tokio::main]
 async fn main() {
   let args = Args::parse();
