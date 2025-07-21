@@ -4,7 +4,7 @@ use clap::{Parser, Subcommand, ValueEnum};
 /// with their forms if the form is distinct enough (e.g. pumkaboo-small or toxtricity-amped). These varieties can be
 /// listed using the 'list' subcommand.
 #[derive(Parser, Debug)]
-#[command(long_about)]
+#[command(version, long_about)]
 pub struct Args {
   #[command(subcommand)]
   pub command: SubArgs,
