@@ -10,9 +10,6 @@ use rustemon::pokemon::*;
 #[derive(Parser, Debug)]
 #[command(long_about)]
 struct Args {
-  #[arg(long, hide = true)]
-  test: bool,
-
   #[command(subcommand)]
   command: SubArgs,
 }
@@ -236,9 +233,6 @@ impl std::fmt::Display for Version {
 #[tokio::main]
 async fn main() {
   let args = Args::parse();
-  if args.test {
-    println!("{:?}", args);
-  }
 
   let result = match args.command {
     SubArgs::ListCmd { .. } => print_varieties(&args.command).await,
