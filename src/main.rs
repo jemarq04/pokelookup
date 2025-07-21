@@ -761,6 +761,9 @@ async fn print_encounters(args: &SubArgs) -> Result<Vec<String>, clap::error::Er
         }
       }
     }
+    if encounters.len() == 0 {
+      continue;
+    }
     result.push(format!(
       "{}:",
       if !fast && let Ok(name) = get_pokemon_name(&client, &mon_resource, "en").await {
