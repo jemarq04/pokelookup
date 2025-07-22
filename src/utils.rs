@@ -13,11 +13,7 @@ pub struct Args {
 #[derive(Subcommand, Debug)]
 pub enum SubArgs {
   /// Look up the varieties of a given pokemon.
-  #[command(
-    name = "list",
-    about = "look up the varieties of a pokemon",
-    long_about
-  )]
+  #[command(name = "list", long_about)]
   ListCmd {
     #[arg(help = "name of pokemon species")]
     pokemon: String,
@@ -27,7 +23,7 @@ pub enum SubArgs {
   },
 
   /// Look up the type(s) of a given pokemon.
-  #[command(name = "types", about = "look up the types of a pokemon", long_about)]
+  #[command(name = "types", long_about)]
   TypeCmd {
     #[arg(help = "name of pokemon")]
     pokemon: String,
@@ -43,7 +39,7 @@ pub enum SubArgs {
   /// marked accordingly.
   #[command(
     name = "abilities",
-    about = "look up the abilities of a pokemon",
+    about = "Look up the abilities of a given pokemon",
     long_about
   )]
   AbilityCmd {
@@ -62,7 +58,7 @@ pub enum SubArgs {
   /// retrieve the moveset from the Scarlet/Violet version group.
   #[command(
     name = "moves",
-    about = "look up the level-up movesets of a pokemon",
+    about = "Look up the level-up moveset of a given pokemon",
     long_about
   )]
   MoveCmd {
@@ -81,11 +77,7 @@ pub enum SubArgs {
   },
 
   /// Look up the egg groups of a given pokemon species.
-  #[command(
-    name = "eggs",
-    about = "look up the egg groups of a pokemon",
-    long_about
-  )]
+  #[command(name = "eggs", long_about)]
   EggCmd {
     #[arg(help = "name of pokemon species")]
     pokemon: String,
@@ -95,11 +87,7 @@ pub enum SubArgs {
   },
 
   /// Look up the gender ratio of a given pokemon species.
-  #[command(
-    name = "genders",
-    about = "look up the gender ratio of a pokemon",
-    long_about
-  )]
+  #[command(name = "genders", long_about)]
   GenderCmd {
     #[arg(help = "name of pokemon species")]
     pokemon: String,
@@ -109,11 +97,7 @@ pub enum SubArgs {
   },
 
   /// Look up the encounters for a given pokemon and version.
-  #[command(
-    name = "encounters",
-    about = "look up encounters for a pokemon",
-    long_about
-  )]
+  #[command(name = "encounters", long_about)]
   EncounterCmd {
     #[arg(value_enum, hide_possible_values = true, help = "name of version")]
     version: Version,
