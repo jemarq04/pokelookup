@@ -19,6 +19,7 @@ async fn main() {
     SubArgs::EggCmd { .. } => print_eggs(&args.command).await,
     SubArgs::GenderCmd { .. } => print_genders(&args.command).await,
     SubArgs::EncounterCmd { .. } => print_encounters(&args.command).await,
+    SubArgs::MatchupCmd { .. } => print_matchups(&args.command).await,
   };
 
   match result {
@@ -550,6 +551,36 @@ async fn print_encounters(args: &SubArgs) -> Result<Vec<String>, clap::error::Er
   }
 
   Ok(result)
+}
+
+async fn print_matchups(args: &SubArgs) -> Result<Vec<String>, clap::error::Error> {
+  let SubArgs::MatchupCmd {
+    primary,
+    secondary,
+    fast,
+    ..
+  } = args
+  else {
+    return Err(Args::command().error(ErrorKind::InvalidValue, "invalid arguments for subcommand"));
+  };
+
+  // Create client
+  let client = rustemon::client::RustemonClient::default();
+
+  let primary = match rustemon::pokemon::type_::get_by_name(&format!("{}", primary), &client).await
+  {
+    Ok(x) => x,
+    Err(_) => panic!("error: could not find type {}", primary),
+  };
+  let secondary = match secondary {
+    Some(t) => match rustemon::pokemon::type_::get_by_name(&format!("{}", t), &client).await {
+      Ok(x) => Some(x),
+      Err(_) => panic!("error: could not find type {}", t),
+    },
+    None => None,
+  };
+
+  Ok(Vec::new())
 }
 
 #[cfg(test)]

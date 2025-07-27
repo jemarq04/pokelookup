@@ -111,6 +111,29 @@ pub enum SubArgs {
     #[arg(short, help = "recursively check evolution chain")]
     recursive: bool,
   },
+
+  /// Look up the type matchups for given type(s).
+  #[command(name = "matchups", long_about)]
+  MatchupCmd {
+    #[arg(
+      value_enum,
+      hide_possible_values = true,
+      value_name = "TYPE",
+      help = "name of type"
+    )]
+    primary: Type,
+
+    #[arg(
+      value_enum,
+      hide_possible_values = true,
+      value_name = "TYPE",
+      help = "name of optional secondary type"
+    )]
+    secondary: Option<Type>,
+
+    #[arg(short, long, help = "skip API requests for formatted names")]
+    fast: bool,
+  },
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, ValueEnum)]
@@ -153,6 +176,7 @@ impl std::fmt::Display for VersionGroup {
       .fmt(f)
   }
 }
+
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, ValueEnum)]
 pub enum Version {
   Red,
@@ -201,6 +225,37 @@ pub enum Version {
   TheIndigoDisk,
 }
 impl std::fmt::Display for Version {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    self
+      .to_possible_value()
+      .expect("no values are skipped")
+      .get_name()
+      .fmt(f)
+  }
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, ValueEnum)]
+pub enum Type {
+  Normal,
+  Fighting,
+  Flying,
+  Poison,
+  Ground,
+  Rock,
+  Bug,
+  Ghost,
+  Steel,
+  Fire,
+  Water,
+  Grass,
+  Electric,
+  Psychic,
+  Ice,
+  Dragon,
+  Dark,
+  Fairy,
+}
+impl std::fmt::Display for Type {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     self
       .to_possible_value()
