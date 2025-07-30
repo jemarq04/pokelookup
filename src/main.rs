@@ -995,4 +995,44 @@ mod tests {
       Err(err) => err.exit(),
     }
   }
+
+  #[tokio::test]
+  async fn test_matchups() {
+    let success = vec![
+      "   *0      *0.5      *2   ", "-------- -------- --------", "Dragon   Fighting Poison  ",
+      "         Bug      Steel   ", "         Dark             ",
+    ];
+
+    let args = SubArgs::MatchupCmd {
+      primary: Type::Fairy,
+      secondary: None,
+    };
+
+    match print_matchups(&args).await {
+      Ok(res) => assert_eq!(res, success),
+      Err(err) => err.exit(),
+    }
+  }
+
+  #[tokio::test]
+  async fn test_matchups_dual() {
+    let success = vec![
+      "   *0     *0.25     *0.5      *2       *4   ",
+      "-------- -------- -------- -------- --------",
+      "Electric          Flying   Ground           ",
+      "                  Steel    Water            ",
+      "                  Poison   Grass            ",
+      "                  Rock     Ice              ",
+    ];
+
+    let args = SubArgs::MatchupCmd {
+      primary: Type::Electric,
+      secondary: Some(Type::Ground),
+    };
+
+    match print_matchups(&args).await {
+      Ok(res) => assert_eq!(res, success),
+      Err(err) => err.exit(),
+    }
+  }
 }
