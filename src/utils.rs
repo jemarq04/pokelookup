@@ -112,7 +112,7 @@ pub enum SubArgs {
     recursive: bool,
   },
 
-  /// Look up the type matchups for given type(s).
+  /// Look up the type weaknesses/resistances for given type(s).
   #[command(name = "matchups", long_about)]
   MatchupCmd {
     #[arg(
