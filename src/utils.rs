@@ -130,9 +130,6 @@ pub enum SubArgs {
       help = "name of optional secondary type"
     )]
     secondary: Option<Type>,
-
-    #[arg(short, long, help = "skip API requests for formatted names")]
-    fast: bool,
   },
 }
 

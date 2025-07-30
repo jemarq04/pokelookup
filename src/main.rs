@@ -555,10 +555,7 @@ async fn print_encounters(args: &SubArgs) -> Result<Vec<String>, clap::error::Er
 
 async fn print_matchups(args: &SubArgs) -> Result<Vec<String>, clap::error::Error> {
   let SubArgs::MatchupCmd {
-    primary,
-    secondary,
-    fast,
-    ..
+    primary, secondary, ..
   } = args
   else {
     return Err(Args::command().error(ErrorKind::InvalidValue, "invalid arguments for subcommand"));
