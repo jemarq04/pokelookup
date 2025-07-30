@@ -1,8 +1,9 @@
 mod utils;
 
 use clap::error::{ContextKind, ContextValue, ErrorKind};
-use clap::{CommandFactory, Parser};
+use clap::{CommandFactory, Parser, ValueEnum};
 use futures::future;
+use itertools::izip;
 use rustemon::Follow;
 use rustemon::pokemon::*;
 use utils::*;
@@ -564,6 +565,7 @@ async fn print_matchups(args: &SubArgs) -> Result<Vec<String>, clap::error::Erro
   // Create client
   let client = rustemon::client::RustemonClient::default();
 
+  // Get type resources
   let primary = match rustemon::pokemon::type_::get_by_name(&format!("{}", primary), &client).await
   {
     Ok(x) => x,
@@ -577,7 +579,124 @@ async fn print_matchups(args: &SubArgs) -> Result<Vec<String>, clap::error::Erro
     None => None,
   };
 
-  Ok(Vec::new())
+  // Get matchups from other types
+  let mut no_damage_from = Vec::new();
+  let mut half_damage_from = Vec::new();
+  let mut double_damage_from = Vec::new();
+  let mut quarter_damage_from = Vec::new();
+  let mut quad_damage_from = Vec::new();
+
+  for other_type in primary.damage_relations.no_damage_from.iter() {
+    no_damage_from.push(format!(
+      "{:?}",
+      Type::from_str(&other_type.name, true).unwrap()
+    ));
+  }
+  for other_type in primary.damage_relations.half_damage_from.iter() {
+    half_damage_from.push(format!(
+      "{:?}",
+      Type::from_str(&other_type.name, true).unwrap()
+    ));
+  }
+  for other_type in primary.damage_relations.double_damage_from.iter() {
+    double_damage_from.push(format!(
+      "{:?}",
+      Type::from_str(&other_type.name, true).unwrap()
+    ));
+  }
+  if let Some(ref second) = secondary {
+    for other_type in second.damage_relations.no_damage_from.iter() {
+      let name = format!("{:?}", Type::from_str(&other_type.name, true).unwrap());
+      if let Some(idx) = half_damage_from.iter().position(|x| *x == name) {
+        half_damage_from.remove(idx);
+        no_damage_from.push(name.clone());
+      } else if let Some(idx) = double_damage_from.iter().position(|x| *x == name) {
+        double_damage_from.remove(idx);
+        no_damage_from.push(name.clone());
+      } else if let None = no_damage_from.iter().position(|x| *x == name) {
+        no_damage_from.push(name.clone());
+      }
+    }
+    for other_type in second.damage_relations.half_damage_from.iter() {
+      let name = format!("{:?}", Type::from_str(&other_type.name, true).unwrap());
+      if let Some(idx) = half_damage_from.iter().position(|x| *x == name) {
+        quarter_damage_from.push(name.clone());
+        half_damage_from.remove(idx);
+      } else if let Some(idx) = double_damage_from.iter().position(|x| *x == name) {
+        double_damage_from.remove(idx);
+      } else if let None = no_damage_from.iter().position(|x| *x == name) {
+        half_damage_from.push(name.clone());
+      }
+    }
+    for other_type in second.damage_relations.double_damage_from.iter() {
+      let name = format!("{:?}", Type::from_str(&other_type.name, true).unwrap());
+      if let Some(idx) = half_damage_from.iter().position(|x| *x == name) {
+        half_damage_from.remove(idx);
+      } else if let Some(idx) = double_damage_from.iter().position(|x| *x == name) {
+        quad_damage_from.push(name.clone());
+        double_damage_from.remove(idx);
+      } else if let None = no_damage_from.iter().position(|x| *x == name) {
+        double_damage_from.push(name.clone());
+      }
+    }
+  }
+  let maxlen = itertools::max(vec![
+    no_damage_from.len(),
+    half_damage_from.len(),
+    double_damage_from.len(),
+  ])
+  .unwrap();
+  while no_damage_from.len() < maxlen {
+    no_damage_from.push(String::new());
+  }
+  while half_damage_from.len() < maxlen {
+    half_damage_from.push(String::new());
+  }
+  while double_damage_from.len() < maxlen {
+    double_damage_from.push(String::new());
+  }
+  while quarter_damage_from.len() < maxlen {
+    quarter_damage_from.push(String::new());
+  }
+  while quad_damage_from.len() < maxlen {
+    quad_damage_from.push(String::new());
+  }
+
+  // Collect into final result
+  let mut result: Vec<String> = Vec::new();
+
+  match secondary {
+    None => {
+      result.push(format!("{:^8} {:^8} {:^8}", "*0", "*0.5", "*2"));
+      result.push(format!("{:-<8} {:-<8} {:-<8}", "", "", ""));
+      for (no_dmg, half_dmg, double_dmg) in
+        izip!(&no_damage_from, &half_damage_from, &double_damage_from)
+      {
+        result.push(format!("{:<8} {:<8} {:<8}", no_dmg, half_dmg, double_dmg));
+      }
+    },
+    Some(_) => {
+      result.push(format!(
+        "{:^8} {:^8} {:^8} {:^8} {:^8}",
+        "*0", "*0.25", "*0.5", "*2", "*4"
+      ));
+      result.push(format!(
+        "{:-<8} {:-<8} {:-<8} {:-<8} {:-<8}",
+        "", "", "", "", ""
+      ));
+      for (no_dmg, quarter_dmg, half_dmg, double_dmg, quad_dmg) in izip!(
+        &no_damage_from, &quarter_damage_from, &half_damage_from, &double_damage_from,
+        &quad_damage_from
+      ) {
+        result.push(format!(
+          "{:<8} {:<8} {:<8} {:<8} {:<8}",
+          no_dmg, quarter_dmg, half_dmg, double_dmg, quad_dmg
+        ));
+      }
+    },
+  }
+
+  Ok(result)
 }
 
 #[cfg(test)]
