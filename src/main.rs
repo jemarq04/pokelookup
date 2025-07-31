@@ -5,22 +5,42 @@ use clap::{CommandFactory, Parser, ValueEnum};
 use futures::future;
 use itertools::izip;
 use rustemon::Follow;
+use rustemon::client::{CACacheManager, RustemonClient, RustemonClientBuilder};
 use rustemon::pokemon::*;
 use utils::*;
 
 #[tokio::main]
 async fn main() {
-  let args = Args::parse();
+  let mut args = Args::parse();
+
+  if let None = args.cache_dir {
+    args.cache_dir = match std::env::home_dir() {
+      Some(path) => Some(format!("{}/.cache/pokelookup", path.display()).into()),
+      None => None,
+    }
+  }
+  let client = match args.cache_dir {
+    Some(path) => {
+      match RustemonClientBuilder::default()
+        .with_manager(CACacheManager { path })
+        .try_build()
+      {
+        Ok(cl) => cl,
+        Err(_) => RustemonClient::default(),
+      }
+    },
+    None => RustemonClient::default(),
+  };
 
   let result = match args.command {
-    SubArgs::ListCmd { .. } => print_varieties(&args.command).await,
-    SubArgs::TypeCmd { .. } => print_types(&args.command).await,
-    SubArgs::AbilityCmd { .. } => print_abilities(&args.command).await,
-    SubArgs::MoveCmd { .. } => print_moves(&args.command).await,
-    SubArgs::EggCmd { .. } => print_eggs(&args.command).await,
-    SubArgs::GenderCmd { .. } => print_genders(&args.command).await,
-    SubArgs::EncounterCmd { .. } => print_encounters(&args.command).await,
-    SubArgs::MatchupCmd { .. } => print_matchups(&args.command).await,
+    SubArgs::ListCmd { .. } => print_varieties(&args.command, &client).await,
+    SubArgs::TypeCmd { .. } => print_types(&args.command, &client).await,
+    SubArgs::AbilityCmd { .. } => print_abilities(&args.command, &client).await,
+    SubArgs::MoveCmd { .. } => print_moves(&args.command, &client).await,
+    SubArgs::EggCmd { .. } => print_eggs(&args.command, &client).await,
+    SubArgs::GenderCmd { .. } => print_genders(&args.command, &client).await,
+    SubArgs::EncounterCmd { .. } => print_encounters(&args.command, &client).await,
+    SubArgs::MatchupCmd { .. } => print_matchups(&args.command, &client).await,
   };
 
   match result {
@@ -31,7 +51,7 @@ async fn main() {
 }
 
 async fn get_name(
-  client: &rustemon::client::RustemonClient,
+  client: &RustemonClient,
   names: &Vec<rustemon::model::resource::Name>,
   lang: &str,
 ) -> Result<String, ()> {
@@ -46,7 +66,7 @@ async fn get_name(
 }
 
 async fn get_pokemon_name(
-  client: &rustemon::client::RustemonClient,
+  client: &RustemonClient,
   pokemon: &rustemon::model::pokemon::Pokemon,
   lang: &str,
 ) -> Result<String, ()> {
@@ -72,7 +92,7 @@ async fn get_pokemon_name(
 }
 
 async fn get_pokemon_from_chain(
-  client: &rustemon::client::RustemonClient,
+  client: &RustemonClient,
   pokemon: &str,
   recursive: bool,
 ) -> Result<Vec<rustemon::model::pokemon::Pokemon>, ()> {
@@ -137,13 +157,13 @@ async fn get_pokemon_from_chain(
   Ok(result)
 }
 
-async fn print_varieties(args: &SubArgs) -> Result<Vec<String>, clap::error::Error> {
+async fn print_varieties(
+  args: &SubArgs,
+  client: &RustemonClient,
+) -> Result<Vec<String>, clap::error::Error> {
   let SubArgs::ListCmd { pokemon, fast, .. } = args else {
     return Err(Args::command().error(ErrorKind::InvalidValue, "invalid arguments for subcommand"));
   };
-
-  // Create client
-  let client = rustemon::client::RustemonClient::default();
 
   // Create pokemon resources
   let species_resource = match pokemon_species::get_by_name(&pokemon, &client).await {
@@ -169,7 +189,10 @@ async fn print_varieties(args: &SubArgs) -> Result<Vec<String>, clap::error::Err
   Ok(result)
 }
 
-async fn print_types(args: &SubArgs) -> Result<Vec<String>, clap::error::Error> {
+async fn print_types(
+  args: &SubArgs,
+  client: &RustemonClient,
+) -> Result<Vec<String>, clap::error::Error> {
   let SubArgs::TypeCmd {
     pokemon,
     fast,
@@ -179,9 +202,6 @@ async fn print_types(args: &SubArgs) -> Result<Vec<String>, clap::error::Error> 
   else {
     return Err(Args::command().error(ErrorKind::InvalidValue, "invalid arguments for subcommand"));
   };
-
-  // Create client
-  let client = rustemon::client::RustemonClient::default();
 
   // Create pokemon resources
   let resources = match get_pokemon_from_chain(&client, &pokemon, *recursive).await {
@@ -235,7 +255,10 @@ async fn print_types(args: &SubArgs) -> Result<Vec<String>, clap::error::Error> 
   Ok(result)
 }
 
-async fn print_abilities(args: &SubArgs) -> Result<Vec<String>, clap::error::Error> {
+async fn print_abilities(
+  args: &SubArgs,
+  client: &RustemonClient,
+) -> Result<Vec<String>, clap::error::Error> {
   let SubArgs::AbilityCmd {
     pokemon,
     fast,
@@ -245,9 +268,6 @@ async fn print_abilities(args: &SubArgs) -> Result<Vec<String>, clap::error::Err
   else {
     return Err(Args::command().error(ErrorKind::InvalidValue, "invalid arguments for subcommand"));
   };
-
-  // Create client
-  let client = rustemon::client::RustemonClient::default();
 
   // Create pokemon resources
   let resources = match get_pokemon_from_chain(&client, &pokemon, *recursive).await {
@@ -304,7 +324,10 @@ async fn print_abilities(args: &SubArgs) -> Result<Vec<String>, clap::error::Err
   Ok(result)
 }
 
-async fn print_moves(args: &SubArgs) -> Result<Vec<String>, clap::error::Error> {
+async fn print_moves(
+  args: &SubArgs,
+  client: &RustemonClient,
+) -> Result<Vec<String>, clap::error::Error> {
   let SubArgs::MoveCmd {
     pokemon,
     fast,
@@ -315,9 +338,6 @@ async fn print_moves(args: &SubArgs) -> Result<Vec<String>, clap::error::Error> 
   else {
     return Err(Args::command().error(ErrorKind::InvalidValue, "invalid arguments for subcommand"));
   };
-
-  // Create client
-  let client = rustemon::client::RustemonClient::default();
 
   // Create pokemon resource
   let mon_resource = match pokemon::get_by_name(&pokemon, &client).await {
@@ -389,13 +409,13 @@ async fn print_moves(args: &SubArgs) -> Result<Vec<String>, clap::error::Error> 
   Ok(result)
 }
 
-async fn print_eggs(args: &SubArgs) -> Result<Vec<String>, clap::error::Error> {
+async fn print_eggs(
+  args: &SubArgs,
+  client: &RustemonClient,
+) -> Result<Vec<String>, clap::error::Error> {
   let SubArgs::EggCmd { pokemon, fast, .. } = args else {
     return Err(Args::command().error(ErrorKind::InvalidValue, "invalid arguments for subcommand"));
   };
-
-  // Create client
-  let client = rustemon::client::RustemonClient::default();
 
   // Create pokemon resources
   let species_resource = match pokemon_species::get_by_name(&pokemon, &client).await {
@@ -449,13 +469,13 @@ async fn print_eggs(args: &SubArgs) -> Result<Vec<String>, clap::error::Error> {
   Ok(result)
 }
 
-async fn print_genders(args: &SubArgs) -> Result<Vec<String>, clap::error::Error> {
+async fn print_genders(
+  args: &SubArgs,
+  client: &RustemonClient,
+) -> Result<Vec<String>, clap::error::Error> {
   let SubArgs::GenderCmd { pokemon, fast, .. } = args else {
     return Err(Args::command().error(ErrorKind::InvalidValue, "invalid arguments for subcommand"));
   };
-
-  // Create client
-  let client = rustemon::client::RustemonClient::default();
 
   // Create pokemon resources
   let species_resource = match pokemon_species::get_by_name(&pokemon, &client).await {
@@ -483,7 +503,10 @@ async fn print_genders(args: &SubArgs) -> Result<Vec<String>, clap::error::Error
   Ok(result)
 }
 
-async fn print_encounters(args: &SubArgs) -> Result<Vec<String>, clap::error::Error> {
+async fn print_encounters(
+  args: &SubArgs,
+  client: &RustemonClient,
+) -> Result<Vec<String>, clap::error::Error> {
   let SubArgs::EncounterCmd {
     version,
     pokemon,
@@ -494,9 +517,6 @@ async fn print_encounters(args: &SubArgs) -> Result<Vec<String>, clap::error::Er
   else {
     return Err(Args::command().error(ErrorKind::InvalidValue, "invalid arguments for subcommand"));
   };
-
-  // Create client
-  let client = rustemon::client::RustemonClient::default();
 
   // Create pokemon resources
   let resources = match get_pokemon_from_chain(&client, &pokemon, *recursive).await {
@@ -554,16 +574,16 @@ async fn print_encounters(args: &SubArgs) -> Result<Vec<String>, clap::error::Er
   Ok(result)
 }
 
-async fn print_matchups(args: &SubArgs) -> Result<Vec<String>, clap::error::Error> {
+async fn print_matchups(
+  args: &SubArgs,
+  client: &RustemonClient,
+) -> Result<Vec<String>, clap::error::Error> {
   let SubArgs::MatchupCmd {
     primary, secondary, ..
   } = args
   else {
     return Err(Args::command().error(ErrorKind::InvalidValue, "invalid arguments for subcommand"));
   };
-
-  // Create client
-  let client = rustemon::client::RustemonClient::default();
 
   // Get type resources
   let primary = match rustemon::pokemon::type_::get_by_name(&format!("{}", primary), &client).await
@@ -705,13 +725,15 @@ mod tests {
 
   #[tokio::test]
   async fn test_varieties() {
+    let client = RustemonClient::default();
+
     for fast in vec![false, true].into_iter() {
       let args = SubArgs::ListCmd {
         pokemon: String::from("meowth"),
         fast,
       };
 
-      match print_varieties(&args).await {
+      match print_varieties(&args, &client).await {
         Ok(s) => {
           assert_eq!(
             s,
@@ -731,6 +753,8 @@ mod tests {
 
   #[tokio::test]
   async fn test_types() {
+    let client = RustemonClient::default();
+
     let success: Vec<String> = vec!["Toxel:", "  Electric/Poison"]
       .into_iter()
       .map(|x| x.into())
@@ -743,7 +767,7 @@ mod tests {
         recursive: false,
       };
 
-      match print_types(&args).await {
+      match print_types(&args, &client).await {
         Ok(s) => assert_eq!(
           s,
           if fast {
@@ -759,13 +783,15 @@ mod tests {
 
   #[tokio::test]
   async fn test_types_recursive() {
+    let client = RustemonClient::default();
+
     let success = vec!["stantler:", "  normal", "wyrdeer:", "  normal/psychic"];
     let args = SubArgs::TypeCmd {
       pokemon: String::from("stantler"),
       fast: true,
       recursive: true,
     };
-    match print_types(&args).await {
+    match print_types(&args, &client).await {
       Ok(s) => assert_eq!(s, success),
       Err(err) => err.exit(),
     }
@@ -773,6 +799,8 @@ mod tests {
 
   #[tokio::test]
   async fn test_abilities() {
+    let client = RustemonClient::default();
+
     let success: Vec<String> = vec!["Toxel:", " 1. Rattled", " 2. Static", " 3. Klutz (Hidden)"]
       .into_iter()
       .map(|x| x.into())
@@ -785,7 +813,7 @@ mod tests {
         recursive: false,
       };
 
-      match print_abilities(&args).await {
+      match print_abilities(&args, &client).await {
         Ok(s) => assert_eq!(
           s,
           if fast {
@@ -801,6 +829,8 @@ mod tests {
 
   #[tokio::test]
   async fn test_abilities_recursive() {
+    let client = RustemonClient::default();
+
     let success = vec![
       "Stantler:", " 1. Intimidate", " 2. Frisk", " 3. Sap Sipper (Hidden)", "Wyrdeer:",
       " 1. Intimidate", " 2. Frisk", " 3. Sap Sipper (Hidden)",
@@ -812,7 +842,7 @@ mod tests {
       recursive: true,
     };
 
-    match print_abilities(&args).await {
+    match print_abilities(&args, &client).await {
       Ok(s) => assert_eq!(s, success),
       Err(err) => err.exit(),
     }
@@ -820,6 +850,8 @@ mod tests {
 
   #[tokio::test]
   async fn test_moves() {
+    let client = RustemonClient::default();
+
     let success = vec![
       vec![
         "quaxly:", " - water-gun (1)", " - growl (1)", " - pound (1)", " - work-up (7)",
@@ -841,7 +873,7 @@ mod tests {
         fast: idx == 0,
       };
 
-      match print_moves(&args).await {
+      match print_moves(&args, &client).await {
         Ok(res) => assert_eq!(res, vals),
         Err(err) => err.exit(),
       }
@@ -850,6 +882,8 @@ mod tests {
 
   #[tokio::test]
   async fn test_moves_level() {
+    let client = RustemonClient::default();
+
     let success = vec![
       "Quaxly:", " - Double Hit (17)", " - Aqua Cutter (21)", " - Air Slash (24)",
       " - Focus Energy (28)",
@@ -862,7 +896,7 @@ mod tests {
       fast: false,
     };
 
-    match print_moves(&args).await {
+    match print_moves(&args, &client).await {
       Ok(res) => assert_eq!(res, success),
       Err(err) => err.exit(),
     }
@@ -870,6 +904,8 @@ mod tests {
 
   #[tokio::test]
   async fn test_eggs() {
+    let client = RustemonClient::default();
+
     let success = vec![
       vec!["stantler:", " - ground"],
       vec!["Stantler:", " - Field"],
@@ -881,7 +917,7 @@ mod tests {
         fast: idx == 0,
       };
 
-      match print_eggs(&args).await {
+      match print_eggs(&args, &client).await {
         Ok(res) => assert_eq!(res, vals),
         Err(err) => err.exit(),
       }
@@ -889,13 +925,15 @@ mod tests {
   }
   #[tokio::test]
   async fn test_genders() {
+    let client = RustemonClient::default();
+
     for fast in vec![false, true].into_iter() {
       let args = SubArgs::GenderCmd {
         pokemon: String::from("meowth"),
         fast,
       };
 
-      match print_genders(&args).await {
+      match print_genders(&args, &client).await {
         Ok(s) => assert_eq!(
           s,
           vec![
@@ -911,6 +949,8 @@ mod tests {
 
   #[tokio::test]
   async fn test_encounters() {
+    let client = RustemonClient::default();
+
     let success = vec![
       vec![
         "machop:",
@@ -946,7 +986,7 @@ mod tests {
         fast: idx == 0,
       };
 
-      match print_encounters(&args).await {
+      match print_encounters(&args, &client).await {
         Ok(res) => assert_eq!(res, vals),
         Err(err) => err.exit(),
       }
@@ -955,6 +995,8 @@ mod tests {
 
   #[tokio::test]
   async fn test_encounters_recursive() {
+    let client = RustemonClient::default();
+
     let success = vec![
       "goldeen:",
       " - viridian-city-area",
@@ -990,7 +1032,7 @@ mod tests {
       recursive: true,
     };
 
-    match print_encounters(&args).await {
+    match print_encounters(&args, &client).await {
       Ok(res) => assert_eq!(res, success),
       Err(err) => err.exit(),
     }
@@ -998,6 +1040,8 @@ mod tests {
 
   #[tokio::test]
   async fn test_matchups() {
+    let client = RustemonClient::default();
+
     let success = vec![
       "   *0      *0.5      *2   ", "-------- -------- --------", "Dragon   Fighting Poison  ",
       "         Bug      Steel   ", "         Dark             ",
@@ -1008,7 +1052,7 @@ mod tests {
       secondary: None,
     };
 
-    match print_matchups(&args).await {
+    match print_matchups(&args, &client).await {
       Ok(res) => assert_eq!(res, success),
       Err(err) => err.exit(),
     }
@@ -1016,6 +1060,8 @@ mod tests {
 
   #[tokio::test]
   async fn test_matchups_dual() {
+    let client = RustemonClient::default();
+
     let success = vec![
       "   *0     *0.25     *0.5      *2       *4   ",
       "-------- -------- -------- -------- --------",
@@ -1030,7 +1076,7 @@ mod tests {
       secondary: Some(Type::Ground),
     };
 
-    match print_matchups(&args).await {
+    match print_matchups(&args, &client).await {
       Ok(res) => assert_eq!(res, success),
       Err(err) => err.exit(),
     }

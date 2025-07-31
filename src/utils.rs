@@ -6,6 +6,13 @@ use clap::{Parser, Subcommand, ValueEnum};
 #[derive(Parser, Debug)]
 #[command(version, long_about)]
 pub struct Args {
+  #[arg(
+    long,
+    value_name = "DIR",
+    help = "cache directory for API calls (default: ~/.cache/pokelookup/)"
+  )]
+  pub cache_dir: Option<std::path::PathBuf>,
+
   #[command(subcommand)]
   pub command: SubArgs,
 }
