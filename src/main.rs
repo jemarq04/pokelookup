@@ -592,13 +592,12 @@ async fn print_matchups(
   };
 
   // Get type resources
-  let primary = match rustemon::pokemon::type_::get_by_name(&format!("{}", primary), &client).await
-  {
+  let primary = match type_::get_by_name(&format!("{}", primary), &client).await {
     Ok(x) => x,
     Err(_) => panic!("error: could not find type {}", primary),
   };
   let secondary = match secondary {
-    Some(t) => match rustemon::pokemon::type_::get_by_name(&format!("{}", t), &client).await {
+    Some(t) => match type_::get_by_name(&format!("{}", t), &client).await {
       Ok(x) => Some(x),
       Err(_) => panic!("error: could not find type {}", t),
     },
