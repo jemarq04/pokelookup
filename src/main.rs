@@ -26,10 +26,16 @@ async fn main() {
         .try_build()
       {
         Ok(cl) => cl,
-        Err(_) => RustemonClient::default(),
+        Err(_) => {
+          eprintln!("warning: cache directory set to cache manager default");
+          RustemonClient::default()
+        },
       }
     },
-    None => RustemonClient::default(),
+    None => {
+      eprintln!("warning: cache directory set to cache manager default");
+      RustemonClient::default()
+    },
   };
 
   let result = match args.command {
