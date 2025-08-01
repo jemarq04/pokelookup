@@ -238,10 +238,10 @@ async fn print_abilities(
     // Get ability names
     let mut names = Vec::new();
     for ab in abilities.into_iter() {
-      if *fast {
+      if !fast && let Ok(name) = get_name(&client, &ab.ability.names, "en").await {
+        names.push(name + if ab.hidden { " (Hidden)" } else { "" });
+      } else {
         names.push(ab.ability.name.clone() + if ab.hidden { " (hidden)" } else { "" });
-      } else if let Ok(x) = get_name(&client, &ab.ability.names, "en").await {
-        names.push(x + if ab.hidden { " (Hidden)" } else { "" });
       }
     }
 
