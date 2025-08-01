@@ -1,4 +1,8 @@
 use clap::{Parser, Subcommand, ValueEnum};
+use futures::future;
+use rustemon::Follow;
+use rustemon::client::RustemonClient;
+use rustemon::pokemon::*;
 
 /// Look up pokemon details using PokeAPI using the 'rustemon' wrapper. Note that sometimes pokemon need to be listed
 /// with their forms if the form is distinct enough (e.g. pumkaboo-small or toxtricity-amped). These varieties can be
@@ -267,4 +271,129 @@ impl std::fmt::Display for Type {
       .get_name()
       .fmt(f)
   }
+}
+
+pub async fn get_name(
+  client: &RustemonClient,
+  names: &Vec<rustemon::model::resource::Name>,
+  lang: &str,
+) -> Result<String, ()> {
+  for n in names.iter() {
+    if let Ok(x) = n.language.follow(&client).await
+      && x.name == lang
+    {
+      return Ok(n.name.clone());
+    }
+  }
+  Err(())
+}
+
+pub async fn get_pokemon_name(
+  client: &RustemonClient,
+  pokemon: &rustemon::model::pokemon::Pokemon,
+  lang: &str,
+) -> Result<String, ()> {
+  let forms =
+    match future::try_join_all(pokemon.forms.iter().map(async |f| f.follow(&client).await)).await {
+      Ok(x) => x,
+      Err(_) => return Err(()),
+    };
+
+  for form in forms.into_iter() {
+    if !form.is_default || form.names.len() == 0 {
+      continue;
+    }
+    return get_name(&client, &form.names, lang).await;
+  }
+
+  let species = match pokemon.species.follow(&client).await {
+    Ok(x) => x,
+    Err(_) => return Err(()),
+  };
+
+  get_name(&client, &species.names, lang).await
+}
+
+pub async fn get_pokemon_from_chain(
+  client: &RustemonClient,
+  pokemon: &str,
+  recursive: bool,
+) -> Result<Vec<rustemon::model::pokemon::Pokemon>, ()> {
+  let mut result = Vec::new();
+  let pokemon = match pokemon::get_by_name(pokemon, &client).await {
+    Ok(x) => x,
+    Err(_) => return Err(()),
+  };
+
+  if recursive {
+    let species = match pokemon.species.follow(&client).await {
+      Ok(x) => x,
+      Err(_) => return Err(()),
+    };
+    if let Some(chain) = species.evolution_chain {
+      let chain = match chain.follow(&client).await {
+        Ok(x) => x.chain,
+        Err(_) => return Err(()),
+      };
+      if let Ok(x) = pokemon_species::get_by_name(&chain.species.name, &client).await {
+        if let Ok(y) = future::try_join_all(
+          x.varieties
+            .iter()
+            .map(async |v| v.pokemon.follow(&client).await),
+        )
+        .await
+        {
+          y.into_iter().for_each(|mon| result.push(mon));
+        }
+      }
+      for evo1 in chain.evolves_to.iter() {
+        if let Ok(x) = pokemon_species::get_by_name(&evo1.species.name, &client).await {
+          if let Ok(y) = future::try_join_all(
+            x.varieties
+              .iter()
+              .map(async |v| v.pokemon.follow(&client).await),
+          )
+          .await
+          {
+            y.into_iter().for_each(|mon| result.push(mon));
+          }
+        }
+        for evo2 in evo1.evolves_to.iter() {
+          if let Ok(x) = pokemon_species::get_by_name(&evo2.species.name, &client).await {
+            if let Ok(y) = future::try_join_all(
+              x.varieties
+                .iter()
+                .map(async |v| v.pokemon.follow(&client).await),
+            )
+            .await
+            {
+              y.into_iter().for_each(|mon| result.push(mon));
+            }
+          }
+        }
+      }
+    }
+  } else {
+    result.push(pokemon);
+  }
+
+  Ok(result)
+}
+
+pub fn follow_encounters(
+  pokemon: &rustemon::model::pokemon::Pokemon,
+) -> Result<Vec<rustemon::model::pokemon::LocationAreaEncounter>, ()> {
+  if let Ok(mut url) = ureq::get(pokemon.location_area_encounters.clone()).call()
+    && let Ok(body) = url.body_mut().read_to_string()
+  {
+    let result: Vec<rustemon::model::pokemon::LocationAreaEncounter> =
+      match serde_json::from_str(&body) {
+        Ok(x) => x,
+        Err(_) => {
+          return Err(());
+        },
+      };
+    return Ok(result);
+  }
+  Err(())
 }

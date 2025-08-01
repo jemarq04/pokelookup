@@ -56,113 +56,6 @@ async fn main() {
   };
 }
 
-async fn get_name(
-  client: &RustemonClient,
-  names: &Vec<rustemon::model::resource::Name>,
-  lang: &str,
-) -> Result<String, ()> {
-  for n in names.iter() {
-    if let Ok(x) = n.language.follow(&client).await
-      && x.name == lang
-    {
-      return Ok(n.name.clone());
-    }
-  }
-  Err(())
-}
-
-async fn get_pokemon_name(
-  client: &RustemonClient,
-  pokemon: &rustemon::model::pokemon::Pokemon,
-  lang: &str,
-) -> Result<String, ()> {
-  let forms =
-    match future::try_join_all(pokemon.forms.iter().map(async |f| f.follow(&client).await)).await {
-      Ok(x) => x,
-      Err(_) => return Err(()),
-    };
-
-  for form in forms.into_iter() {
-    if !form.is_default || form.names.len() == 0 {
-      continue;
-    }
-    return get_name(&client, &form.names, lang).await;
-  }
-
-  let species = match pokemon.species.follow(&client).await {
-    Ok(x) => x,
-    Err(_) => return Err(()),
-  };
-
-  get_name(&client, &species.names, lang).await
-}
-
-async fn get_pokemon_from_chain(
-  client: &RustemonClient,
-  pokemon: &str,
-  recursive: bool,
-) -> Result<Vec<rustemon::model::pokemon::Pokemon>, ()> {
-  let mut result = Vec::new();
-  let pokemon = match pokemon::get_by_name(pokemon, &client).await {
-    Ok(x) => x,
-    Err(_) => return Err(()),
-  };
-
-  if recursive {
-    let species = match pokemon.species.follow(&client).await {
-      Ok(x) => x,
-      Err(_) => return Err(()),
-    };
-    if let Some(chain) = species.evolution_chain {
-      let chain = match chain.follow(&client).await {
-        Ok(x) => x.chain,
-        Err(_) => return Err(()),
-      };
-      if let Ok(x) = pokemon_species::get_by_name(&chain.species.name, &client).await {
-        if let Ok(y) = future::try_join_all(
-          x.varieties
-            .iter()
-            .map(async |v| v.pokemon.follow(&client).await),
-        )
-        .await
-        {
-          y.into_iter().for_each(|mon| result.push(mon));
-        }
-      }
-      for evo1 in chain.evolves_to.iter() {
-        if let Ok(x) = pokemon_species::get_by_name(&evo1.species.name, &client).await {
-          if let Ok(y) = future::try_join_all(
-            x.varieties
-              .iter()
-              .map(async |v| v.pokemon.follow(&client).await),
-          )
-          .await
-          {
-            y.into_iter().for_each(|mon| result.push(mon));
-          }
-        }
-        for evo2 in evo1.evolves_to.iter() {
-          if let Ok(x) = pokemon_species::get_by_name(&evo2.species.name, &client).await {
-            if let Ok(y) = future::try_join_all(
-              x.varieties
-                .iter()
-                .map(async |v| v.pokemon.follow(&client).await),
-            )
-            .await
-            {
-              y.into_iter().for_each(|mon| result.push(mon));
-            }
-          }
-        }
-      }
-    }
-  } else {
-    result.push(pokemon);
-  }
-
-  Ok(result)
-}
-
 async fn print_varieties(
   args: &SubArgs,
   client: &RustemonClient,
@@ -595,19 +488,17 @@ async fn print_encounters(
 
   let mut result = Vec::new();
   for mon_resource in resources.iter() {
-    let encounter_resources: Vec<rustemon::model::pokemon::LocationAreaEncounter> = if let Ok(mut x) =
-      ureq::get(mon_resource.location_area_encounters.clone()).call()
-      && let Ok(y) = x.body_mut().read_to_string()
-    {
-      serde_json::from_str(&y).expect("JSON was not well formatted")
-    } else {
-      return Err(Args::command().error(
-        ErrorKind::InvalidValue,
-        format!(
-          "API error: could not follow url for encounters for {}",
-          mon_resource.name
-        ),
-      ));
+    let encounters = match follow_encounters(&mon_resource) {
+      Ok(x) => x,
+      Err(_) => {
+        return Err(Args::command().error(
+          ErrorKind::InvalidValue,
+          format!(
+            "API error: could not follow url for encounters for {}",
+            mon_resource.name
+          ),
+        ));
+      },
     };
 
     let mut encounters = Vec::new();
