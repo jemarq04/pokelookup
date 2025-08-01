@@ -1,6 +1,6 @@
 mod utils;
 
-use clap::error::{ContextKind, ContextValue, ErrorKind};
+use clap::error::ErrorKind;
 use clap::{CommandFactory, Parser, ValueEnum};
 use futures::future;
 use itertools::izip;
@@ -174,7 +174,12 @@ async fn print_varieties(
   // Create pokemon resources
   let species_resource = match pokemon_species::get_by_name(&pokemon, &client).await {
     Ok(x) => x,
-    Err(_) => panic!("error: could not find pokemon species {}", pokemon),
+    Err(_) => {
+      return Err(Args::command().error(
+        ErrorKind::InvalidValue,
+        format!("invalid pokemon species: {}", pokemon),
+      ));
+    },
   };
 
   // Print varieties
@@ -212,7 +217,17 @@ async fn print_types(
   // Create pokemon resources
   let resources = match get_pokemon_from_chain(&client, &pokemon, *recursive).await {
     Ok(x) => x,
-    Err(_) => panic!("error: could not find pokemon {}", pokemon),
+    Err(_) => {
+      let valid = Args::command().get_styles().get_valid().clone();
+      let err = Args::command().error(
+        ErrorKind::InvalidValue,
+        format!(
+          "invalid pokemon: {pokemon}\n\n{valid}tip:{valid:#} try running '{} list {pokemon}'",
+          Args::command().get_name()
+        ),
+      );
+      return Err(err);
+    },
   };
 
   let mut result = Vec::new();
@@ -227,7 +242,15 @@ async fn print_types(
     .await
     {
       Ok(x) => x,
-      Err(_) => panic!("error: could not retrive types for pokemon {}", pokemon),
+      Err(_) => {
+        return Err(Args::command().error(
+          ErrorKind::InvalidValue,
+          format!(
+            "API error: could not retrieve types for {}",
+            mon_resource.name,
+          ),
+        ));
+      },
     };
 
     // Print English names
@@ -243,7 +266,7 @@ async fn print_types(
       .await
       {
         Ok(x) => x,
-        Err(_) => panic!("error: could not find English names for types"),
+        Err(_) => panic!("API error: could not find English names for types"),
       }
     };
 
@@ -278,7 +301,17 @@ async fn print_abilities(
   // Create pokemon resources
   let resources = match get_pokemon_from_chain(&client, &pokemon, *recursive).await {
     Ok(x) => x,
-    Err(_) => panic!("error: could not find pokemon {}", pokemon),
+    Err(_) => {
+      let valid = Args::command().get_styles().get_valid().clone();
+      let err = Args::command().error(
+        ErrorKind::InvalidValue,
+        format!(
+          "invalid pokemon: {pokemon}\n\n{valid}tip:{valid:#} try running '{} list {pokemon}'",
+          Args::command().get_name()
+        ),
+      );
+      return Err(err);
+    },
   };
 
   // Create struct to store ability
@@ -302,7 +335,15 @@ async fn print_abilities(
     .await
     {
       Ok(x) => x,
-      Err(_) => panic!("error: could not retrive abilities for pokemon {}", pokemon),
+      Err(_) => {
+        return Err(Args::command().error(
+          ErrorKind::InvalidValue,
+          format!(
+            "API error: could not retrieve abilities for {}",
+            mon_resource.name,
+          ),
+        ));
+      },
     };
 
     // Print English names
@@ -348,7 +389,17 @@ async fn print_moves(
   // Create pokemon resource
   let mon_resource = match pokemon::get_by_name(&pokemon, &client).await {
     Ok(x) => x,
-    Err(_) => panic!("error: could not find pokemon {}", pokemon),
+    Err(_) => {
+      let valid = Args::command().get_styles().get_valid().clone();
+      let err = Args::command().error(
+        ErrorKind::InvalidValue,
+        format!(
+          "invalid pokemon: {pokemon}\n\n{valid}tip:{valid:#} try running '{} list {pokemon}'",
+          Args::command().get_name()
+        ),
+      );
+      return Err(err);
+    },
   };
 
   // Create struct to store move
@@ -426,7 +477,12 @@ async fn print_eggs(
   // Create pokemon resources
   let species_resource = match pokemon_species::get_by_name(&pokemon, &client).await {
     Ok(x) => x,
-    Err(_) => panic!("error: could not find pokemon species {}", pokemon),
+    Err(_) => {
+      return Err(Args::command().error(
+        ErrorKind::InvalidValue,
+        format!("invalid pokemon species: {}", pokemon),
+      ));
+    },
   };
 
   // Get egg groups
@@ -439,10 +495,15 @@ async fn print_eggs(
   .await
   {
     Ok(x) => x,
-    Err(_) => panic!(
-      "error: could not retrive egg groups for pokemon {}",
-      pokemon
-    ),
+    Err(_) => {
+      return Err(Args::command().error(
+        ErrorKind::InvalidValue,
+        format!(
+          "API error: could not retrieve egg groups for {}",
+          species_resource.name,
+        ),
+      ));
+    },
   };
 
   // Print English names
@@ -486,7 +547,12 @@ async fn print_genders(
   // Create pokemon resources
   let species_resource = match pokemon_species::get_by_name(&pokemon, &client).await {
     Ok(x) => x,
-    Err(_) => panic!("error: could not find pokemon species {}", pokemon),
+    Err(_) => {
+      return Err(Args::command().error(
+        ErrorKind::InvalidValue,
+        format!("invalid pokemon species: {}", pokemon),
+      ));
+    },
   };
 
   let mut result = Vec::new();
@@ -527,7 +593,17 @@ async fn print_encounters(
   // Create pokemon resources
   let resources = match get_pokemon_from_chain(&client, &pokemon, *recursive).await {
     Ok(x) => x,
-    Err(_) => panic!("error: could not find pokemon {}", pokemon),
+    Err(_) => {
+      let valid = Args::command().get_styles().get_valid().clone();
+      let err = Args::command().error(
+        ErrorKind::InvalidValue,
+        format!(
+          "invalid pokemon: {pokemon}\n\n{valid}tip:{valid:#} try running '{} list {pokemon}'",
+          Args::command().get_name()
+        ),
+      );
+      return Err(err);
+    },
   };
 
   let mut result = Vec::new();
@@ -594,12 +670,22 @@ async fn print_matchups(
   // Get type resources
   let primary = match type_::get_by_name(&format!("{}", primary), &client).await {
     Ok(x) => x,
-    Err(_) => panic!("error: could not find type {}", primary),
+    Err(_) => {
+      return Err(Args::command().error(
+        ErrorKind::InvalidValue,
+        format!("API error: could not retrieve type {primary}",),
+      ));
+    },
   };
   let secondary = match secondary {
     Some(t) => match type_::get_by_name(&format!("{}", t), &client).await {
       Ok(x) => Some(x),
-      Err(_) => panic!("error: could not find type {}", t),
+      Err(_) => {
+        return Err(Args::command().error(
+          ErrorKind::InvalidValue,
+          format!("API error: could not retrieve type {t}",),
+        ));
+      },
     },
     None => None,
   };
