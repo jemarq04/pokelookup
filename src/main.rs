@@ -13,6 +13,7 @@ use utils::*;
 async fn main() {
   let mut args = Args::parse();
 
+  // Create cache directory for API calls
   if let None = args.cache_dir {
     args.cache_dir = match std::env::home_dir() {
       Some(path) => Some(format!("{}/.cache/pokelookup", path.display()).into()),
@@ -38,6 +39,7 @@ async fn main() {
     },
   };
 
+  // Call the appropriate subcommand for results
   let result = match args.command {
     SubArgs::ListCmd { .. } => print_varieties(&args.command, &client).await,
     SubArgs::TypeCmd { .. } => print_types(&args.command, &client).await,
@@ -49,6 +51,7 @@ async fn main() {
     SubArgs::MatchupCmd { .. } => print_matchups(&args.command, &client).await,
   };
 
+  // Handle output
   match result {
     Ok(s) if s.len() == 0 => println!("No results found."),
     Ok(s) => s.iter().for_each(|x| println!("{}", x)),
@@ -59,44 +62,41 @@ async fn main() {
 async fn print_varieties(
   args: &SubArgs,
   client: &RustemonClient,
-) -> Result<Vec<String>, clap::error::Error> {
+) -> Result<Vec<String>, clap::Error> {
   let SubArgs::ListCmd { pokemon, fast, .. } = args else {
     return Err(Args::command().error(ErrorKind::InvalidValue, "invalid arguments for subcommand"));
   };
 
-  // Create pokemon resources
-  let species_resource = match pokemon_species::get_by_name(&pokemon, &client).await {
+  // Create pokemon species resource
+  let species = match pokemon_species::get_by_name(&pokemon, &client).await {
     Ok(x) => x,
     Err(_) => {
       return Err(Args::command().error(
         ErrorKind::InvalidValue,
-        format!("invalid pokemon species: {}", pokemon),
+        format!("invalid pokemon species: {pokemon}"),
       ));
     },
   };
 
-  // Print varieties
+  // Return varieties
   let mut result = Vec::new();
   result.push(format!(
     "{}:",
-    if !fast && let Ok(name) = get_name(&client, &species_resource.names, "en").await {
+    if !fast && let Ok(name) = get_name(&client, &species.names, "en").await {
       name
     } else {
-      species_resource.name.clone()
+      species.name.clone()
     }
   ));
-  species_resource
+  species
     .varieties
     .iter()
-    .for_each(|x| result.push(format!(" - {}", x.pokemon.name)));
+    .for_each(|variety| result.push(format!(" - {}", variety.pokemon.name)));
 
   Ok(result)
 }
 
-async fn print_types(
-  args: &SubArgs,
-  client: &RustemonClient,
-) -> Result<Vec<String>, clap::error::Error> {
+async fn print_types(args: &SubArgs, client: &RustemonClient) -> Result<Vec<String>, clap::Error> {
   let SubArgs::TypeCmd {
     pokemon,
     fast,
@@ -123,9 +123,10 @@ async fn print_types(
     },
   };
 
+  // Iterate over all requested pokemon
   let mut result = Vec::new();
   for mon_resource in resources.iter() {
-    // Get types
+    // Get type resources
     let types = match future::try_join_all(
       mon_resource
         .types
@@ -146,7 +147,7 @@ async fn print_types(
       },
     };
 
-    // Print English names
+    // Get type names
     let mut type_names = Vec::new();
     for type_ in types.iter() {
       if !fast && let Ok(name) = get_name(&client, &type_.names, "en").await {
@@ -156,6 +157,7 @@ async fn print_types(
       }
     }
 
+    // Return types
     result.push(format!(
       "{}:",
       if !fast && let Ok(name) = get_pokemon_name(&client, &mon_resource, "en").await {
@@ -173,7 +175,7 @@ async fn print_types(
 async fn print_abilities(
   args: &SubArgs,
   client: &RustemonClient,
-) -> Result<Vec<String>, clap::error::Error> {
+) -> Result<Vec<String>, clap::Error> {
   let SubArgs::AbilityCmd {
     pokemon,
     fast,
@@ -206,9 +208,10 @@ async fn print_abilities(
     ability: rustemon::model::pokemon::Ability,
   }
 
+  // Iterate over all requested pokemon
   let mut result = Vec::new();
   for mon_resource in resources.iter() {
-    // Get abilities
+    // Get ability resources
     let abilities = match future::try_join_all(mon_resource.abilities.iter().map(async |a| {
       match a.ability.follow(&client).await {
         Ok(x) => Ok(Ability {
@@ -232,7 +235,7 @@ async fn print_abilities(
       },
     };
 
-    // Print English names
+    // Get ability names
     let mut names = Vec::new();
     for ab in abilities.into_iter() {
       if *fast {
@@ -241,10 +244,12 @@ async fn print_abilities(
         names.push(x + if ab.hidden { " (Hidden)" } else { "" });
       }
     }
+
+    // Return abilities
     result.push(format!(
       "{}:",
-      if !fast && let Ok(x) = get_pokemon_name(&client, &mon_resource, "en").await {
-        x
+      if !fast && let Ok(name) = get_pokemon_name(&client, &mon_resource, "en").await {
+        name
       } else {
         mon_resource.name.clone()
       }
@@ -254,13 +259,11 @@ async fn print_abilities(
       .enumerate()
       .for_each(|x| result.push(format!(" {}. {}", x.0 + 1, x.1)));
   }
+
   Ok(result)
 }
 
-async fn print_moves(
-  args: &SubArgs,
-  client: &RustemonClient,
-) -> Result<Vec<String>, clap::error::Error> {
+async fn print_moves(args: &SubArgs, client: &RustemonClient) -> Result<Vec<String>, clap::Error> {
   let SubArgs::MoveCmd {
     pokemon,
     fast,
@@ -289,7 +292,6 @@ async fn print_moves(
   };
 
   // Create struct to store move
-  #[derive(Debug)]
   struct Move {
     name: String,
     level: i64,
@@ -324,10 +326,11 @@ async fn print_moves(
       }
     }
   }
+
   // Sort moves by descending level
   moves.sort_by(|m, n| n.level.cmp(&m.level));
 
-  // Print result
+  // Get current moveset (if requested)
   let mut moves = if let Some(_) = *level {
     moves.iter().take(4).collect::<Vec<_>>()
   } else {
@@ -335,6 +338,7 @@ async fn print_moves(
   };
   moves.reverse();
 
+  // Return moves
   let mut result = Vec::new();
   result.push(format!(
     "{}:",
@@ -351,15 +355,12 @@ async fn print_moves(
   Ok(result)
 }
 
-async fn print_eggs(
-  args: &SubArgs,
-  client: &RustemonClient,
-) -> Result<Vec<String>, clap::error::Error> {
+async fn print_eggs(args: &SubArgs, client: &RustemonClient) -> Result<Vec<String>, clap::Error> {
   let SubArgs::EggCmd { pokemon, fast, .. } = args else {
     return Err(Args::command().error(ErrorKind::InvalidValue, "invalid arguments for subcommand"));
   };
 
-  // Create pokemon resources
+  // Create pokemon species resource
   let species_resource = match pokemon_species::get_by_name(&pokemon, &client).await {
     Ok(x) => x,
     Err(_) => {
@@ -370,7 +371,7 @@ async fn print_eggs(
     },
   };
 
-  // Get egg groups
+  // Get egg group resources
   let eggs = match future::try_join_all(
     species_resource
       .egg_groups
@@ -391,7 +392,7 @@ async fn print_eggs(
     },
   };
 
-  // Print English names
+  // Get egg group names
   let mut egg_names = Vec::new();
   for egg in eggs.iter() {
     if !fast && let Ok(name) = get_name(&client, &egg.names, "en").await {
@@ -401,6 +402,7 @@ async fn print_eggs(
     }
   }
 
+  // Return egg groups
   let mut result = Vec::new();
   result.push(format!(
     "{}:",
@@ -412,19 +414,20 @@ async fn print_eggs(
   ));
   egg_names
     .iter()
-    .for_each(|x| result.push(format!(" - {}", x)));
+    .for_each(|name| result.push(format!(" - {}", name)));
+
   Ok(result)
 }
 
 async fn print_genders(
   args: &SubArgs,
   client: &RustemonClient,
-) -> Result<Vec<String>, clap::error::Error> {
+) -> Result<Vec<String>, clap::Error> {
   let SubArgs::GenderCmd { pokemon, fast, .. } = args else {
     return Err(Args::command().error(ErrorKind::InvalidValue, "invalid arguments for subcommand"));
   };
 
-  // Create pokemon resources
+  // Create pokemon species resource
   let species_resource = match pokemon_species::get_by_name(&pokemon, &client).await {
     Ok(x) => x,
     Err(_) => {
@@ -435,6 +438,7 @@ async fn print_genders(
     },
   };
 
+  // Return gender ratio
   let mut result = Vec::new();
   result.push(format!(
     "{}:",
@@ -458,7 +462,7 @@ async fn print_genders(
 async fn print_encounters(
   args: &SubArgs,
   client: &RustemonClient,
-) -> Result<Vec<String>, clap::error::Error> {
+) -> Result<Vec<String>, clap::Error> {
   let SubArgs::EncounterCmd {
     version,
     pokemon,
@@ -486,8 +490,10 @@ async fn print_encounters(
     },
   };
 
+  // Iterate over all requested pokemon
   let mut result = Vec::new();
   for mon_resource in resources.iter() {
+    // Get encounter resources
     let encounters = match follow_encounters(&mon_resource) {
       Ok(x) => x,
       Err(_) => {
@@ -501,11 +507,12 @@ async fn print_encounters(
       },
     };
 
-    let mut encounters = Vec::new();
-    for enc in encounter_resources.iter() {
+    // Get location area names
+    let mut encounter_names = Vec::new();
+    for enc in encounters.iter() {
       for det in enc.version_details.iter() {
         if det.version.name == format!("{}", version) {
-          encounters.push(
+          encounter_names.push(
             if !fast
               && let Ok(x) = enc.location_area.follow(&client).await
               && let Ok(name) = get_name(&client, &x.names, "en").await
@@ -519,9 +526,13 @@ async fn print_encounters(
         }
       }
     }
-    if encounters.len() == 0 {
+
+    // Do not return empty entries
+    if encounter_names.len() == 0 {
       continue;
     }
+
+    // Return location areas
     result.push(format!(
       "{}:",
       if !fast && let Ok(name) = get_pokemon_name(&client, &mon_resource, "en").await {
@@ -530,9 +541,9 @@ async fn print_encounters(
         mon_resource.name.clone()
       }
     ));
-    encounters
+    encounter_names
       .into_iter()
-      .for_each(|x| result.push(format!(" - {}", x)));
+      .for_each(|name| result.push(format!(" - {}", name)));
   }
 
   Ok(result)
@@ -541,7 +552,7 @@ async fn print_encounters(
 async fn print_matchups(
   args: &SubArgs,
   client: &RustemonClient,
-) -> Result<Vec<String>, clap::error::Error> {
+) -> Result<Vec<String>, clap::Error> {
   let SubArgs::MatchupCmd {
     primary, secondary, ..
   } = args
@@ -633,6 +644,8 @@ async fn print_matchups(
       }
     }
   }
+
+  // Bring all vectors to the same size
   let maxlen = itertools::max(vec![
     no_damage_from.len(),
     half_damage_from.len(),
@@ -655,9 +668,8 @@ async fn print_matchups(
     quad_damage_from.push(String::new());
   }
 
-  // Collect into final result
-  let mut result: Vec<String> = Vec::new();
-
+  // Return type matchups
+  let mut result = Vec::new();
   match secondary {
     None => {
       result.push(format!("{:^8} {:^8} {:^8}", "*0", "*0.5", "*2"));
