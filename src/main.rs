@@ -254,21 +254,14 @@ async fn print_types(
     };
 
     // Print English names
-    let types = if *fast {
-      types.into_iter().map(|t| t.name).collect()
-    } else {
-      match future::try_join_all(
-        types
-          .into_iter()
-          .map(|t| t.names)
-          .map(async |names| get_name(&client, &names, "en").await),
-      )
-      .await
-      {
-        Ok(x) => x,
-        Err(_) => panic!("API error: could not find English names for types"),
+    let mut type_names = Vec::new();
+    for type_ in types.iter() {
+      if !fast && let Ok(name) = get_name(&client, &type_.names, "en").await {
+        type_names.push(name);
+      } else {
+        type_names.push(type_.name.clone());
       }
-    };
+    }
 
     result.push(format!(
       "{}:",
@@ -278,7 +271,7 @@ async fn print_types(
         mon_resource.name.clone()
       }
     ));
-    result.push(format!("  {}", types.join("/")));
+    result.push(format!("  {}", type_names.join("/")));
   }
 
   Ok(result)
@@ -419,20 +412,19 @@ async fn print_moves(
         match *level {
           Some(x) if details.level_learned_at > x => {},
           _ => {
-            if *fast {
+            if !fast
+              && let Ok(x) = move_resource.move_.follow(&client).await
+              && let Ok(name) = get_name(&client, &x.names, "en").await
+            {
+              moves.push(Move {
+                name,
+                level: details.level_learned_at,
+              });
+            } else {
               moves.push(Move {
                 name: move_resource.move_.name.clone(),
                 level: details.level_learned_at,
               });
-            } else if let Ok(x) = move_resource.move_.follow(&client).await {
-              if let Ok(y) = get_name(&client, &x.names, "en").await {
-                moves.push(Move {
-                  name: y,
-                  level: details.level_learned_at,
-                });
-              }
-            } else {
-              panic!("error: could not find move {}", move_resource.move_.name);
             }
           },
         };
@@ -507,21 +499,14 @@ async fn print_eggs(
   };
 
   // Print English names
-  let eggs = if *fast {
-    eggs.into_iter().map(|g| g.name).collect()
-  } else {
-    match future::try_join_all(
-      eggs
-        .into_iter()
-        .map(|g| g.names)
-        .map(async |names| get_name(&client, &names, "en").await),
-    )
-    .await
-    {
-      Ok(x) => x,
-      Err(_) => panic!("error: could not find English names for egg groups"),
+  let mut egg_names = Vec::new();
+  for egg in eggs.iter() {
+    if !fast && let Ok(name) = get_name(&client, &egg.names, "en").await {
+      egg_names.push(name);
+    } else {
+      egg_names.push(egg.name.clone());
     }
-  };
+  }
 
   let mut result = Vec::new();
   result.push(format!(
@@ -532,7 +517,9 @@ async fn print_eggs(
       species_resource.name.clone()
     }
   ));
-  eggs.iter().for_each(|x| result.push(format!(" - {}", x)));
+  egg_names
+    .iter()
+    .for_each(|x| result.push(format!(" - {}", x)));
   Ok(result)
 }
 
@@ -614,25 +601,29 @@ async fn print_encounters(
     {
       serde_json::from_str(&y).expect("JSON was not well formatted")
     } else {
-      panic!(
-        "error: could not follow url for encounters for pokemon {}",
-        pokemon
-      );
+      return Err(Args::command().error(
+        ErrorKind::InvalidValue,
+        format!(
+          "API error: could not follow url for encounters for {}",
+          mon_resource.name
+        ),
+      ));
     };
 
     let mut encounters = Vec::new();
     for enc in encounter_resources.iter() {
       for det in enc.version_details.iter() {
         if det.version.name == format!("{}", version) {
-          encounters.push(if *fast {
-            enc.location_area.name.clone()
-          } else if let Ok(x) = enc.location_area.follow(&client).await
-            && let Ok(y) = get_name(&client, &x.names, "en").await
-          {
-            y
-          } else {
-            panic!("error: could not find location area name");
-          });
+          encounters.push(
+            if !fast
+              && let Ok(x) = enc.location_area.follow(&client).await
+              && let Ok(name) = get_name(&client, &x.names, "en").await
+            {
+              name
+            } else {
+              enc.location_area.name.clone()
+            },
+          );
           break;
         }
       }
@@ -673,7 +664,7 @@ async fn print_matchups(
     Err(_) => {
       return Err(Args::command().error(
         ErrorKind::InvalidValue,
-        format!("API error: could not retrieve type {primary}",),
+        format!("API error: could not retrieve type {primary}"),
       ));
     },
   };
@@ -683,7 +674,7 @@ async fn print_matchups(
       Err(_) => {
         return Err(Args::command().error(
           ErrorKind::InvalidValue,
-          format!("API error: could not retrieve type {t}",),
+          format!("API error: could not retrieve type {t}"),
         ));
       },
     },
