@@ -1,7 +1,7 @@
 [package]
 name = "pokelookup"
 description = "Look up pokemon details through PokeAPI."
-version = "0.9.5"
+version = "0.9.6"
 edition = "2024"
 
 [dependencies]

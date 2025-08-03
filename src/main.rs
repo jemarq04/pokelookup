@@ -302,7 +302,7 @@ async fn print_moves(args: &SubArgs, client: &RustemonClient) -> Result<Vec<Stri
   for move_resource in mon_resource.moves.iter() {
     for details in move_resource.version_group_details.iter() {
       if details.move_learn_method.name == "level-up"
-        && details.version_group.name == format!("{}", *vgroup)
+        && details.version_group.name == vgroup.to_string()
       {
         match *level {
           Some(x) if details.level_learned_at > x => {},
@@ -361,19 +361,19 @@ async fn print_eggs(args: &SubArgs, client: &RustemonClient) -> Result<Vec<Strin
   };
 
   // Create pokemon species resource
-  let species_resource = match pokemon_species::get_by_name(&pokemon, &client).await {
+  let species = match pokemon_species::get_by_name(&pokemon, &client).await {
     Ok(x) => x,
     Err(_) => {
       return Err(Args::command().error(
         ErrorKind::InvalidValue,
-        format!("invalid pokemon species: {}", pokemon),
+        format!("invalid pokemon species: {pokemon}"),
       ));
     },
   };
 
   // Get egg group resources
   let eggs = match future::try_join_all(
-    species_resource
+    species
       .egg_groups
       .iter()
       .map(async |g| g.follow(&client).await),
@@ -386,7 +386,7 @@ async fn print_eggs(args: &SubArgs, client: &RustemonClient) -> Result<Vec<Strin
         ErrorKind::InvalidValue,
         format!(
           "API error: could not retrieve egg groups for {}",
-          species_resource.name,
+          species.name,
         ),
       ));
     },
@@ -406,15 +406,15 @@ async fn print_eggs(args: &SubArgs, client: &RustemonClient) -> Result<Vec<Strin
   let mut result = Vec::new();
   result.push(format!(
     "{}:",
-    if !fast && let Ok(name) = get_name(&client, &species_resource.names, "en").await {
+    if !fast && let Ok(name) = get_name(&client, &species.names, "en").await {
       name
     } else {
-      species_resource.name.clone()
+      species.name.clone()
     }
   ));
   egg_names
     .iter()
-    .for_each(|name| result.push(format!(" - {}", name)));
+    .for_each(|name| result.push(format!(" - {name}")));
 
   Ok(result)
 }
@@ -428,12 +428,12 @@ async fn print_genders(
   };
 
   // Create pokemon species resource
-  let species_resource = match pokemon_species::get_by_name(&pokemon, &client).await {
+  let species = match pokemon_species::get_by_name(&pokemon, &client).await {
     Ok(x) => x,
     Err(_) => {
       return Err(Args::command().error(
         ErrorKind::InvalidValue,
-        format!("invalid pokemon species: {}", pokemon),
+        format!("invalid pokemon species: {pokemon}"),
       ));
     },
   };
@@ -442,13 +442,13 @@ async fn print_genders(
   let mut result = Vec::new();
   result.push(format!(
     "{}:",
-    if !fast && let Ok(name) = get_name(&client, &species_resource.names, "en").await {
+    if !fast && let Ok(name) = get_name(&client, &species.names, "en").await {
       name
     } else {
-      species_resource.name.clone()
+      species.name.clone()
     }
   ));
-  let rate = species_resource.gender_rate as f64 / 8.0 * 100.0;
+  let rate = species.gender_rate as f64 / 8.0 * 100.0;
   if rate < 0.0 {
     result.push(format!(" Genderless"));
   } else {
@@ -511,7 +511,7 @@ async fn print_encounters(
     let mut encounter_names = Vec::new();
     for enc in encounters.iter() {
       for det in enc.version_details.iter() {
-        if det.version.name == format!("{}", version) {
+        if det.version.name == version.to_string() {
           encounter_names.push(
             if !fast
               && let Ok(x) = enc.location_area.follow(&client).await
@@ -543,7 +543,7 @@ async fn print_encounters(
     ));
     encounter_names
       .into_iter()
-      .for_each(|name| result.push(format!(" - {}", name)));
+      .for_each(|name| result.push(format!(" - {name}")));
   }
 
   Ok(result)
@@ -561,7 +561,7 @@ async fn print_matchups(
   };
 
   // Get type resources
-  let primary = match type_::get_by_name(&format!("{}", primary), &client).await {
+  let primary = match type_::get_by_name(&primary.to_string(), &client).await {
     Ok(x) => x,
     Err(_) => {
       return Err(Args::command().error(
@@ -571,7 +571,7 @@ async fn print_matchups(
     },
   };
   let secondary = match secondary {
-    Some(t) => match type_::get_by_name(&format!("{}", t), &client).await {
+    Some(t) => match type_::get_by_name(&t.to_string(), &client).await {
       Ok(x) => Some(x),
       Err(_) => {
         return Err(Args::command().error(
