@@ -272,6 +272,15 @@ impl std::fmt::Display for Type {
       .fmt(f)
   }
 }
+impl Type {
+  pub fn to_title(name: &str) -> Option<String> {
+    if let Ok(title) = Self::from_str(name, true) {
+      Some(format!("{:?}", title))
+    } else {
+      None
+    }
+  }
+}
 
 pub async fn get_name(
   client: &RustemonClient,

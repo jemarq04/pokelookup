@@ -1,7 +1,7 @@
 mod utils;
 
 use clap::error::ErrorKind;
-use clap::{CommandFactory, Parser, ValueEnum};
+use clap::{CommandFactory, Parser};
 use futures::future;
 use itertools::izip;
 use rustemon::Follow;
@@ -591,26 +591,17 @@ async fn print_matchups(
   let mut quad_damage_from = Vec::new();
 
   for other_type in primary.damage_relations.no_damage_from.iter() {
-    no_damage_from.push(format!(
-      "{:?}",
-      Type::from_str(&other_type.name, true).unwrap()
-    ));
+    no_damage_from.push(Type::to_title(&other_type.name).unwrap());
   }
   for other_type in primary.damage_relations.half_damage_from.iter() {
-    half_damage_from.push(format!(
-      "{:?}",
-      Type::from_str(&other_type.name, true).unwrap()
-    ));
+    half_damage_from.push(Type::to_title(&other_type.name).unwrap());
   }
   for other_type in primary.damage_relations.double_damage_from.iter() {
-    double_damage_from.push(format!(
-      "{:?}",
-      Type::from_str(&other_type.name, true).unwrap()
-    ));
+    double_damage_from.push(Type::to_title(&other_type.name).unwrap());
   }
   if let Some(ref second) = secondary {
     for other_type in second.damage_relations.no_damage_from.iter() {
-      let name = format!("{:?}", Type::from_str(&other_type.name, true).unwrap());
+      let name = Type::to_title(&other_type.name).unwrap();
       if let Some(idx) = half_damage_from.iter().position(|x| *x == name) {
         half_damage_from.remove(idx);
         no_damage_from.push(name.clone());
@@ -622,7 +613,7 @@ async fn print_matchups(
       }
     }
     for other_type in second.damage_relations.half_damage_from.iter() {
-      let name = format!("{:?}", Type::from_str(&other_type.name, true).unwrap());
+      let name = Type::to_title(&other_type.name).unwrap();
       if let Some(idx) = half_damage_from.iter().position(|x| *x == name) {
         quarter_damage_from.push(name.clone());
         half_damage_from.remove(idx);
@@ -633,7 +624,7 @@ async fn print_matchups(
       }
     }
     for other_type in second.damage_relations.double_damage_from.iter() {
-      let name = format!("{:?}", Type::from_str(&other_type.name, true).unwrap());
+      let name = Type::to_title(&other_type.name).unwrap();
       if let Some(idx) = half_damage_from.iter().position(|x| *x == name) {
         half_damage_from.remove(idx);
       } else if let Some(idx) = double_damage_from.iter().position(|x| *x == name) {
