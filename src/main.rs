@@ -48,6 +48,7 @@ async fn main() {
     SubArgs::EggCmd { .. } => print_eggs(&args.command, &client).await,
     SubArgs::GenderCmd { .. } => print_genders(&args.command, &client).await,
     SubArgs::EncounterCmd { .. } => print_encounters(&args.command, &client).await,
+    SubArgs::EvolutionCmd { .. } => print_evolutions(&args.command, &client).await,
     SubArgs::MatchupCmd { .. } => print_matchups(&args.command, &client).await,
   };
 
@@ -544,6 +545,142 @@ async fn print_encounters(
     encounter_names
       .into_iter()
       .for_each(|name| result.push(format!(" - {name}")));
+  }
+
+  Ok(result)
+}
+
+async fn print_evolutions(
+  args: &SubArgs,
+  client: &RustemonClient,
+) -> Result<Vec<String>, clap::Error> {
+  let SubArgs::EvolutionCmd {
+    pokemon,
+    fast,
+    secret,
+    ..
+  } = args
+  else {
+    return Err(Args::command().error(ErrorKind::InvalidValue, "invalid arguments for subcommand"));
+  };
+
+  // Create pokemon species resource
+  let species = match pokemon_species::get_by_name(&pokemon, &client).await {
+    Ok(x) => x,
+    Err(_) => {
+      return Err(Args::command().error(
+        ErrorKind::InvalidValue,
+        format!("invalid pokemon species: {pokemon}"),
+      ));
+    },
+  };
+
+  // Iterate over evolution chain, if present
+  let mut result: Vec<String> = Vec::new();
+  if let Some(chain_resource) = species.evolution_chain {
+    // Get evolution chain resource
+    let chain = match chain_resource.follow(&client).await {
+      Ok(x) => x,
+      Err(_) => {
+        return Err(Args::command().error(
+          ErrorKind::InvalidValue,
+          format!(
+            "API error: could not retrieve evolution chain for {}",
+            species.name,
+          ),
+        ));
+      },
+    };
+
+    if chain.chain.evolves_to.len() == 0 {
+      // Record first species name
+      result.push(get_evolution_name(&client, &chain.chain.species, "en", *fast, *secret).await);
+    }
+
+    for evo1 in chain.chain.evolves_to.iter() {
+      if evo1.evolution_details.len() == 0 {
+        result.push(format!(
+          "{} -> ??? -> {}",
+          get_evolution_name(&client, &chain.chain.species, "en", *fast, *secret).await,
+          get_evolution_name(&client, &evo1.species, "en", *fast, *secret).await,
+        ));
+      } else {
+        for method1 in evo1.evolution_details.iter() {
+          result.push(format!(
+            "{} -> {}",
+            get_evolution_name(&client, &chain.chain.species, "en", *fast, *secret).await,
+            if !fast
+              && let Ok(trigger) = method1.trigger.follow(&client).await
+              && let Ok(name) = get_name(&client, &trigger.names, "en").await
+            {
+              name
+            } else {
+              method1.trigger.name.clone()
+            },
+          ));
+
+          if let Some(details) = get_evolution_details(&client, &method1, "en", *fast).await {
+            result
+              .last_mut()
+              .unwrap()
+              .push_str(&format!(" ({details})"));
+          }
+
+          result.last_mut().unwrap().push_str(&format!(
+            " -> {}",
+            get_evolution_name(&client, &evo1.species, "en", *fast, *secret).await,
+          ));
+
+          let mut first_evo2 = true;
+          let curr_steps = result.last().unwrap().clone();
+          for evo2 in evo1.evolves_to.iter() {
+            for method2 in evo2.evolution_details.iter() {
+              let mut temp_steps: String = format!(
+                " -> {}",
+                if !fast
+                  && let Ok(trigger) = method2.trigger.follow(&client).await
+                  && let Ok(name) = get_name(&client, &trigger.names, "en").await
+                {
+                  name
+                } else {
+                  method2.trigger.name.clone()
+                },
+              );
+
+              if let Some(details) = get_evolution_details(&client, &method2, "en", *fast).await {
+                result
+                  .last_mut()
+                  .unwrap()
+                  .push_str(&format!(" ({details})"));
+              }
+
+              temp_steps.push_str(&format!(
+                " -> {}",
+                get_evolution_name(&client, &evo2.species, "en", *fast, *secret).await,
+              ));
+
+              if first_evo2 {
+                result.last_mut().unwrap().push_str(&temp_steps);
+                first_evo2 = false;
+              } else {
+                result.push(format!("{}{}", curr_steps, temp_steps));
+              }
+            }
+          }
+        }
+      }
+    }
+  } else {
+    // No chain found => record species name to final result
+    result.push(if !secret {
+      if !fast && let Ok(name) = get_name(&client, &species.names, "en").await {
+        name
+      } else {
+        species.name.clone()
+      }
+    } else {
+      String::from("MON")
+    });
   }
 
   Ok(result)

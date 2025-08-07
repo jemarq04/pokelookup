@@ -123,6 +123,23 @@ pub enum SubArgs {
     recursive: bool,
   },
 
+  /// Look up evolution chain for a given pokemon species.
+  #[command(name = "evolutions", long_about)]
+  EvolutionCmd {
+    #[arg(help = "name of pokemon species")]
+    pokemon: String,
+
+    #[arg(short, long, help = "skip API requests for formatted names")]
+    fast: bool,
+
+    #[arg(
+      short,
+      long,
+      help = "hide the names of the pokemon in the evolution chain"
+    )]
+    secret: bool,
+  },
+
   /// Look up the type weaknesses/resistances for given type(s).
   #[command(name = "matchups", long_about)]
   MatchupCmd {
@@ -407,4 +424,190 @@ pub fn follow_encounters(
     return Ok(result);
   }
   Err(())
+}
+
+pub async fn get_evolution_name(
+  client: &RustemonClient,
+  species: &rustemon::model::resource::NamedApiResource<rustemon::model::pokemon::PokemonSpecies>,
+  lang: &str,
+  fast: bool,
+  secret: bool,
+) -> String {
+  if !secret {
+    if !fast
+      && let Ok(species) = species.follow(&client).await
+      && let Ok(name) = get_name(&client, &species.names, lang).await
+    {
+      name
+    } else {
+      species.name.clone()
+    }
+  } else {
+    String::from("MON")
+  }
+}
+
+pub async fn get_evolution_details(
+  client: &RustemonClient,
+  details: &rustemon::model::evolution::EvolutionDetail,
+  lang: &str,
+  fast: bool,
+) -> Option<String> {
+  let mut result = Vec::new();
+
+  // Check item
+  if let Some(resource) = &details.item {
+    result.push(format!(
+      "item: {}",
+      if !fast
+        && let Ok(item) = resource.follow(&client).await
+        && let Ok(name) = get_name(&client, &item.names, lang).await
+      {
+        name
+      } else {
+        resource.name.clone()
+      },
+    ));
+  }
+
+  // Check gender
+  if let Some(gender) = &details.gender {
+    result.push(format!("gender: {gender}"))
+  }
+
+  // Check known move
+  if let Some(resource) = &details.known_move {
+    result.push(format!(
+      "known_move: {}",
+      if !fast
+        && let Ok(item) = resource.follow(&client).await
+        && let Ok(name) = get_name(&client, &item.names, lang).await
+      {
+        name
+      } else {
+        resource.name.clone()
+      },
+    ));
+  }
+
+  // Check known move type
+  if let Some(resource) = &details.known_move_type {
+    result.push(format!(
+      "known_move_type: {}",
+      if !fast
+        && let Ok(item) = resource.follow(&client).await
+        && let Ok(name) = get_name(&client, &item.names, lang).await
+      {
+        name
+      } else {
+        resource.name.clone()
+      },
+    ));
+  }
+
+  // Check location
+  if let Some(resource) = &details.location {
+    result.push(format!(
+      "location: {}",
+      if !fast
+        && let Ok(item) = resource.follow(&client).await
+        && let Ok(name) = get_name(&client, &item.names, lang).await
+      {
+        name
+      } else {
+        resource.name.clone()
+      },
+    ));
+  }
+
+  // Check minimum level
+  if let Some(val) = &details.min_level {
+    result.push(format!("min_level: {val}"));
+  }
+
+  // Check minimum happiness
+  if let Some(val) = &details.min_happiness {
+    result.push(format!("min_happiness: {val}"));
+  }
+
+  // Check minimum beauty
+  if let Some(val) = &details.min_beauty {
+    result.push(format!("min_beauty: {val}"));
+  }
+
+  // Check minimum affection
+  if let Some(val) = &details.min_affection {
+    result.push(format!("min_affection: {val}"));
+  }
+
+  // Check overworld rain
+  if details.needs_overworld_rain {
+    result.push(String::from("needs_overworld_rain"));
+  }
+
+  // Check party species
+  if let Some(resource) = &details.party_species {
+    result.push(format!(
+      "party_species: {}",
+      if !fast
+        && let Ok(item) = resource.follow(&client).await
+        && let Ok(name) = get_name(&client, &item.names, lang).await
+      {
+        name
+      } else {
+        resource.name.clone()
+      },
+    ));
+  }
+
+  // Check party type
+  if let Some(resource) = &details.party_type {
+    result.push(format!(
+      "party_type: {}",
+      if !fast
+        && let Ok(item) = resource.follow(&client).await
+        && let Ok(name) = get_name(&client, &item.names, lang).await
+      {
+        name
+      } else {
+        resource.name.clone()
+      },
+    ));
+  }
+
+  // Check relative physical stats
+  if let Some(rel) = &details.relative_physical_stats {
+    result.push(format!("relative_physical_stats: {rel}"));
+  }
+
+  // Check time of day
+  if details.time_of_day.len() != 0 {
+    result.push(format!("time_of_day: {}", details.time_of_day));
+  }
+
+  // Check trade species
+  if let Some(resource) = &details.trade_species {
+    result.push(format!(
+      "trade_species: {}",
+      if !fast
+        && let Ok(item) = resource.follow(&client).await
+        && let Ok(name) = get_name(&client, &item.names, lang).await
+      {
+        name
+      } else {
+        resource.name.clone()
+      },
+    ));
+  }
+
+  // Check upside-down
+  if details.turn_upside_down {
+    result.push(String::from("turn_upside_down"));
+  }
+
+  if result.len() == 0 {
+    None
+  } else {
+    Some(result.join(", "))
+  }
 }
