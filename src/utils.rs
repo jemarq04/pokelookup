@@ -282,6 +282,8 @@ impl Type {
   }
 }
 
+// Helper Functions
+
 pub async fn get_name(
   client: &RustemonClient,
   names: &Vec<rustemon::model::resource::Name>,
