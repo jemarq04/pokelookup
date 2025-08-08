@@ -23,7 +23,7 @@ async fn main() {
   let client = match args.cache_dir {
     Some(path) => {
       match RustemonClientBuilder::default()
-        .with_manager(CACacheManager { path })
+        .with_manager(CACacheManager::new(path, false))
         .try_build()
       {
         Ok(cl) => cl,
