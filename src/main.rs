@@ -648,10 +648,7 @@ async fn print_evolutions(
               );
 
               if let Some(details) = get_evolution_details(&client, &method2, "en", *fast).await {
-                result
-                  .last_mut()
-                  .unwrap()
-                  .push_str(&format!(" ({details})"));
+                temp_steps.push_str(&format!(" ({details})"));
               }
 
               temp_steps.push_str(&format!(
