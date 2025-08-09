@@ -31,6 +31,16 @@ pub enum SubArgs {
 
     #[arg(short, long, help = "skip API requests for formatted names")]
     fast: bool,
+
+    #[arg(value_enum,
+      short,
+      long,
+      value_name = "LANGUAGE",
+      default_value_t = LanguageId::En,
+      hide_possible_values=true,
+      help = "language ID for API requests for formatted names"
+    )]
+    lang: LanguageId,
   },
 
   /// Look up the type(s) of a given pokemon.
@@ -41,6 +51,16 @@ pub enum SubArgs {
 
     #[arg(short, long, help = "skip API requests for formatted names")]
     fast: bool,
+
+    #[arg(value_enum,
+      short,
+      long,
+      value_name = "LANGUAGE",
+      default_value_t = LanguageId::En,
+      hide_possible_values=true,
+      help = "language ID for API requests for formatted names"
+    )]
+    lang: LanguageId,
 
     #[arg(short, help = "recursively check evolution chain")]
     recursive: bool,
@@ -59,6 +79,16 @@ pub enum SubArgs {
 
     #[arg(short, long, help = "skip API requests for formatted names")]
     fast: bool,
+
+    #[arg(value_enum,
+      short,
+      long,
+      value_name = "LANGUAGE",
+      default_value_t = LanguageId::En,
+      hide_possible_values=true,
+      help = "language ID for API requests for formatted names"
+    )]
+    lang: LanguageId,
 
     #[arg(short, help = "recursively check evolution chain")]
     recursive: bool,
@@ -79,6 +109,16 @@ pub enum SubArgs {
     #[arg(short, long, help = "skip API requests for formatted names")]
     fast: bool,
 
+    #[arg(value_enum,
+      short,
+      long,
+      value_name = "LANGUAGE",
+      default_value_t = LanguageId::En,
+      hide_possible_values=true,
+      help = "language ID for API requests for formatted names"
+    )]
+    lang: LanguageId,
+
     #[arg(value_enum, short, long, default_value_t=VersionGroup::ScarletViolet,
             hide_possible_values=true, help="version group name")]
     vgroup: VersionGroup,
@@ -95,6 +135,16 @@ pub enum SubArgs {
 
     #[arg(short, long, help = "skip API requests for formatted names")]
     fast: bool,
+
+    #[arg(value_enum,
+      short,
+      long,
+      value_name = "LANGUAGE",
+      default_value_t = LanguageId::En,
+      hide_possible_values=true,
+      help = "language ID for API requests for formatted names"
+    )]
+    lang: LanguageId,
   },
 
   /// Look up the gender ratio of a given pokemon species.
@@ -105,6 +155,16 @@ pub enum SubArgs {
 
     #[arg(short, long, help = "skip API requests for formatted names")]
     fast: bool,
+
+    #[arg(value_enum,
+      short,
+      long,
+      value_name = "LANGUAGE",
+      default_value_t = LanguageId::En,
+      hide_possible_values=true,
+      help = "language ID for API requests for formatted names"
+    )]
+    lang: LanguageId,
   },
 
   /// Look up the encounters for a given pokemon and version.
@@ -119,6 +179,16 @@ pub enum SubArgs {
     #[arg(short, long, help = "skip API requests for formatted names")]
     fast: bool,
 
+    #[arg(value_enum,
+      short,
+      long,
+      value_name = "LANGUAGE",
+      default_value_t = LanguageId::En,
+      hide_possible_values=true,
+      help = "language ID for API requests for formatted names"
+    )]
+    lang: LanguageId,
+
     #[arg(short, help = "recursively check evolution chain")]
     recursive: bool,
   },
@@ -131,6 +201,16 @@ pub enum SubArgs {
 
     #[arg(short, long, help = "skip API requests for formatted names")]
     fast: bool,
+
+    #[arg(value_enum,
+      short,
+      long,
+      value_name = "LANGUAGE",
+      default_value_t = LanguageId::En,
+      hide_possible_values=true,
+      help = "language ID for API requests for formatted names"
+    )]
+    lang: LanguageId,
 
     #[arg(
       short,
@@ -159,6 +239,21 @@ pub enum SubArgs {
     )]
     secondary: Option<Type>,
   },
+}
+
+#[macro_export]
+macro_rules! impl_Display {
+  ( $T:ty ) => {
+    impl std::fmt::Display for $T {
+      fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self
+          .to_possible_value()
+          .expect("no values are skipped")
+          .get_name()
+          .fmt(f)
+      }
+    }
+  };
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, ValueEnum)]
@@ -192,15 +287,7 @@ pub enum VersionGroup {
   TheTealMask,
   TheIndigoDisk,
 }
-impl std::fmt::Display for VersionGroup {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    self
-      .to_possible_value()
-      .expect("no values are skipped")
-      .get_name()
-      .fmt(f)
-  }
-}
+impl_Display!(VersionGroup);
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, ValueEnum)]
 pub enum Version {
@@ -249,15 +336,7 @@ pub enum Version {
   TheTealMask,
   TheIndigoDisk,
 }
-impl std::fmt::Display for Version {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    self
-      .to_possible_value()
-      .expect("no values are skipped")
-      .get_name()
-      .fmt(f)
-  }
-}
+impl_Display!(Version);
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, ValueEnum)]
 pub enum Type {
@@ -280,15 +359,7 @@ pub enum Type {
   Dark,
   Fairy,
 }
-impl std::fmt::Display for Type {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    self
-      .to_possible_value()
-      .expect("no values are skipped")
-      .get_name()
-      .fmt(f)
-  }
-}
+impl_Display!(Type);
 impl Type {
   pub fn to_title(name: &str) -> Option<String> {
     if let Ok(title) = Self::from_str(name, true) {
@@ -298,6 +369,28 @@ impl Type {
     }
   }
 }
+
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, ValueEnum)]
+pub enum LanguageId {
+  #[value(alias = "ja-Hrkt")]
+  JaHrkt,
+  Roomaji,
+  Ko,
+  #[value(alias = "zh-Hant")]
+  ZhHant,
+  Fr,
+  De,
+  Es,
+  It,
+  En,
+  Cs,
+  Ja,
+  #[value(alias = "zh-Hans")]
+  ZhHans,
+  #[value(alias = "pt-BR")]
+  PtBR,
+}
+impl_Display!(LanguageId);
 
 #[macro_export]
 macro_rules! get_name {

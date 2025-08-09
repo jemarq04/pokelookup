@@ -64,7 +64,13 @@ async fn print_varieties(
   args: &SubArgs,
   client: &RustemonClient,
 ) -> Result<Vec<String>, clap::Error> {
-  let SubArgs::ListCmd { pokemon, fast, .. } = args else {
+  let SubArgs::ListCmd {
+    pokemon,
+    fast,
+    lang,
+    ..
+  } = args
+  else {
     return Err(Args::command().error(ErrorKind::InvalidValue, "invalid arguments for subcommand"));
   };
 
@@ -84,7 +90,7 @@ async fn print_varieties(
   result.push(format!(
     "{}:",
     if !fast {
-      get_name!(species, client, "en")
+      get_name!(species, client, lang.to_string())
     } else {
       species.name.clone()
     }
@@ -101,6 +107,7 @@ async fn print_types(args: &SubArgs, client: &RustemonClient) -> Result<Vec<Stri
   let SubArgs::TypeCmd {
     pokemon,
     fast,
+    lang,
     recursive,
     ..
   } = args
@@ -152,7 +159,7 @@ async fn print_types(args: &SubArgs, client: &RustemonClient) -> Result<Vec<Stri
     let mut type_names = Vec::new();
     for type_ in types.iter() {
       type_names.push(if !fast {
-        get_name!(type_, client, "en")
+        get_name!(type_, client, lang.to_string())
       } else {
         type_.name.clone()
       });
@@ -162,7 +169,7 @@ async fn print_types(args: &SubArgs, client: &RustemonClient) -> Result<Vec<Stri
     result.push(format!(
       "{}:",
       if !fast {
-        get_pokemon_name(&client, &mon_resource, "en").await
+        get_pokemon_name(&client, &mon_resource, &lang.to_string()).await
       } else {
         mon_resource.name.clone()
       }
@@ -180,6 +187,7 @@ async fn print_abilities(
   let SubArgs::AbilityCmd {
     pokemon,
     fast,
+    lang,
     recursive,
     ..
   } = args
@@ -240,7 +248,7 @@ async fn print_abilities(
     let mut names = Vec::new();
     for ab in abilities.into_iter() {
       names.push(if !fast {
-        get_name!(ab.ability, client, "en") + if ab.hidden { " (Hidden)" } else { "" }
+        get_name!(ab.ability, client, lang.to_string()) + if ab.hidden { " (Hidden)" } else { "" }
       } else {
         ab.ability.name.clone() + if ab.hidden { " (hidden)" } else { "" }
       });
@@ -250,7 +258,7 @@ async fn print_abilities(
     result.push(format!(
       "{}:",
       if !fast {
-        get_pokemon_name(&client, &mon_resource, "en").await
+        get_pokemon_name(&client, &mon_resource, &lang.to_string()).await
       } else {
         mon_resource.name.clone()
       }
@@ -268,6 +276,7 @@ async fn print_moves(args: &SubArgs, client: &RustemonClient) -> Result<Vec<Stri
   let SubArgs::MoveCmd {
     pokemon,
     fast,
+    lang,
     vgroup,
     level,
     ..
@@ -310,7 +319,7 @@ async fn print_moves(args: &SubArgs, client: &RustemonClient) -> Result<Vec<Stri
           _ => {
             moves.push(Move {
               name: if !fast {
-                get_name!(follow move_resource.move_, client, "en")
+                get_name!(follow move_resource.move_, client, lang.to_string())
               } else {
                 move_resource.move_.name.clone()
               },
@@ -338,7 +347,7 @@ async fn print_moves(args: &SubArgs, client: &RustemonClient) -> Result<Vec<Stri
   result.push(format!(
     "{}:",
     if !fast {
-      get_pokemon_name(&client, &mon_resource, "en").await
+      get_pokemon_name(&client, &mon_resource, &lang.to_string()).await
     } else {
       mon_resource.name.clone()
     }
@@ -351,7 +360,13 @@ async fn print_moves(args: &SubArgs, client: &RustemonClient) -> Result<Vec<Stri
 }
 
 async fn print_eggs(args: &SubArgs, client: &RustemonClient) -> Result<Vec<String>, clap::Error> {
-  let SubArgs::EggCmd { pokemon, fast, .. } = args else {
+  let SubArgs::EggCmd {
+    pokemon,
+    fast,
+    lang,
+    ..
+  } = args
+  else {
     return Err(Args::command().error(ErrorKind::InvalidValue, "invalid arguments for subcommand"));
   };
 
@@ -391,7 +406,7 @@ async fn print_eggs(args: &SubArgs, client: &RustemonClient) -> Result<Vec<Strin
   let mut egg_names = Vec::new();
   for egg in eggs.iter() {
     egg_names.push(if !fast {
-      get_name!(egg, client, "en")
+      get_name!(egg, client, lang.to_string())
     } else {
       egg.name.clone()
     });
@@ -402,7 +417,7 @@ async fn print_eggs(args: &SubArgs, client: &RustemonClient) -> Result<Vec<Strin
   result.push(format!(
     "{}:",
     if !fast {
-      get_name!(species, client, "en")
+      get_name!(species, client, lang.to_string())
     } else {
       species.name.clone()
     }
@@ -418,7 +433,13 @@ async fn print_genders(
   args: &SubArgs,
   client: &RustemonClient,
 ) -> Result<Vec<String>, clap::Error> {
-  let SubArgs::GenderCmd { pokemon, fast, .. } = args else {
+  let SubArgs::GenderCmd {
+    pokemon,
+    fast,
+    lang,
+    ..
+  } = args
+  else {
     return Err(Args::command().error(ErrorKind::InvalidValue, "invalid arguments for subcommand"));
   };
 
@@ -438,7 +459,7 @@ async fn print_genders(
   result.push(format!(
     "{}:",
     if !fast {
-      get_name!(species, client, "en")
+      get_name!(species, client, lang.to_string())
     } else {
       species.name.clone()
     }
@@ -462,6 +483,7 @@ async fn print_encounters(
     version,
     pokemon,
     fast,
+    lang,
     recursive,
     ..
   } = args
@@ -508,7 +530,7 @@ async fn print_encounters(
       for det in enc.version_details.iter() {
         if det.version.name == version.to_string() {
           encounter_names.push(if !fast {
-            get_name!(follow enc.location_area, client, "en")
+            get_name!(follow enc.location_area, client, lang.to_string())
           } else {
             enc.location_area.name.clone()
           });
@@ -526,7 +548,7 @@ async fn print_encounters(
     result.push(format!(
       "{}:",
       if !fast {
-        get_pokemon_name(&client, &mon_resource, "en").await
+        get_pokemon_name(&client, &mon_resource, &lang.to_string()).await
       } else {
         mon_resource.name.clone()
       }
@@ -546,6 +568,7 @@ async fn print_evolutions(
   let SubArgs::EvolutionCmd {
     pokemon,
     fast,
+    lang,
     secret,
     ..
   } = args
@@ -583,29 +606,54 @@ async fn print_evolutions(
 
     if chain.chain.evolves_to.len() == 0 {
       // Record first species name
-      result.push(get_evolution_name(&client, &chain.chain.species, "en", *fast, *secret).await);
+      result.push(
+        get_evolution_name(
+          &client,
+          &chain.chain.species,
+          &lang.to_string(),
+          *fast,
+          *secret,
+        )
+        .await,
+      );
     }
 
     for evo1 in chain.chain.evolves_to.iter() {
       if evo1.evolution_details.len() == 0 {
         result.push(format!(
           "{} -> ??? -> {}",
-          get_evolution_name(&client, &chain.chain.species, "en", *fast, *secret).await,
-          get_evolution_name(&client, &evo1.species, "en", *fast, *secret).await,
+          get_evolution_name(
+            &client,
+            &chain.chain.species,
+            &lang.to_string(),
+            *fast,
+            *secret
+          )
+          .await,
+          get_evolution_name(&client, &evo1.species, &lang.to_string(), *fast, *secret).await,
         ));
       } else {
         for method1 in evo1.evolution_details.iter() {
           result.push(format!(
             "{} -> {}",
-            get_evolution_name(&client, &chain.chain.species, "en", *fast, *secret).await,
+            get_evolution_name(
+              &client,
+              &chain.chain.species,
+              &lang.to_string(),
+              *fast,
+              *secret
+            )
+            .await,
             if !fast {
-              get_name!(follow method1.trigger, client, "en")
+              get_name!(follow method1.trigger, client, lang.to_string())
             } else {
               method1.trigger.name.clone()
             },
           ));
 
-          if let Some(details) = get_evolution_details(&client, &method1, "en", *fast).await {
+          if let Some(details) =
+            get_evolution_details(&client, &method1, &lang.to_string(), *fast).await
+          {
             result
               .last_mut()
               .unwrap()
@@ -614,7 +662,7 @@ async fn print_evolutions(
 
           result.last_mut().unwrap().push_str(&format!(
             " -> {}",
-            get_evolution_name(&client, &evo1.species, "en", *fast, *secret).await,
+            get_evolution_name(&client, &evo1.species, &lang.to_string(), *fast, *secret).await,
           ));
 
           let mut first_evo2 = true;
@@ -624,19 +672,21 @@ async fn print_evolutions(
               let mut temp_steps: String = format!(
                 " -> {}",
                 if !fast {
-                  get_name!(follow method2.trigger, client, "en")
+                  get_name!(follow method2.trigger, client, lang.to_string())
                 } else {
                   method2.trigger.name.clone()
                 },
               );
 
-              if let Some(details) = get_evolution_details(&client, &method2, "en", *fast).await {
+              if let Some(details) =
+                get_evolution_details(&client, &method2, &lang.to_string(), *fast).await
+              {
                 temp_steps.push_str(&format!(" ({details})"));
               }
 
               temp_steps.push_str(&format!(
                 " -> {}",
-                get_evolution_name(&client, &evo2.species, "en", *fast, *secret).await,
+                get_evolution_name(&client, &evo2.species, &lang.to_string(), *fast, *secret).await,
               ));
 
               if first_evo2 {
@@ -654,7 +704,7 @@ async fn print_evolutions(
     // No chain found => record species name to final result
     result.push(if !secret {
       if !fast {
-        get_name!(species, client, "en")
+        get_name!(species, client, lang.to_string())
       } else {
         species.name.clone()
       }
@@ -824,6 +874,7 @@ mod tests {
       let args = SubArgs::ListCmd {
         pokemon: String::from("meowth"),
         fast,
+        lang: LanguageId::En,
       };
 
       match print_varieties(&args, &client).await {
@@ -857,6 +908,7 @@ mod tests {
       let args = SubArgs::TypeCmd {
         pokemon: String::from("toxel"),
         fast,
+        lang: LanguageId::En,
         recursive: false,
       };
 
@@ -882,6 +934,7 @@ mod tests {
     let args = SubArgs::TypeCmd {
       pokemon: String::from("stantler"),
       fast: true,
+      lang: LanguageId::En,
       recursive: true,
     };
     match print_types(&args, &client).await {
@@ -903,6 +956,7 @@ mod tests {
       let args = SubArgs::AbilityCmd {
         pokemon: String::from("toxel"),
         fast,
+        lang: LanguageId::En,
         recursive: false,
       };
 
@@ -932,6 +986,7 @@ mod tests {
     let args = SubArgs::AbilityCmd {
       pokemon: String::from("stantler"),
       fast: false,
+      lang: LanguageId::En,
       recursive: true,
     };
 
@@ -964,6 +1019,7 @@ mod tests {
         vgroup: VersionGroup::ScarletViolet,
         level: None,
         fast: idx == 0,
+        lang: LanguageId::En,
       };
 
       match print_moves(&args, &client).await {
@@ -987,6 +1043,7 @@ mod tests {
       vgroup: VersionGroup::ScarletViolet,
       level: Some(30),
       fast: false,
+      lang: LanguageId::En,
     };
 
     match print_moves(&args, &client).await {
@@ -1008,6 +1065,7 @@ mod tests {
       let args = SubArgs::EggCmd {
         pokemon: String::from("stantler"),
         fast: idx == 0,
+        lang: LanguageId::En,
       };
 
       match print_eggs(&args, &client).await {
@@ -1024,6 +1082,7 @@ mod tests {
       let args = SubArgs::GenderCmd {
         pokemon: String::from("meowth"),
         fast,
+        lang: LanguageId::En,
       };
 
       match print_genders(&args, &client).await {
@@ -1077,6 +1136,7 @@ mod tests {
         pokemon: String::from("machop"),
         recursive: false,
         fast: idx == 0,
+        lang: LanguageId::En,
       };
 
       match print_encounters(&args, &client).await {
@@ -1122,6 +1182,7 @@ mod tests {
       version: Version::Firered,
       pokemon: String::from("goldeen"),
       fast: true,
+      lang: LanguageId::En,
       recursive: true,
     };
 
