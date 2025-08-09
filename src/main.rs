@@ -83,8 +83,8 @@ async fn print_varieties(
   let mut result = Vec::new();
   result.push(format!(
     "{}:",
-    if !fast && let Ok(name) = get_name(&client, &species.names, "en").await {
-      name
+    if !fast {
+      get_name!(species, client, "en")
     } else {
       species.name.clone()
     }
@@ -151,18 +151,18 @@ async fn print_types(args: &SubArgs, client: &RustemonClient) -> Result<Vec<Stri
     // Get type names
     let mut type_names = Vec::new();
     for type_ in types.iter() {
-      if !fast && let Ok(name) = get_name(&client, &type_.names, "en").await {
-        type_names.push(name);
+      type_names.push(if !fast {
+        get_name!(type_, client, "en")
       } else {
-        type_names.push(type_.name.clone());
-      }
+        type_.name.clone()
+      });
     }
 
     // Return types
     result.push(format!(
       "{}:",
-      if !fast && let Ok(name) = get_pokemon_name(&client, &mon_resource, "en").await {
-        name
+      if !fast {
+        get_pokemon_name(&client, &mon_resource, "en").await
       } else {
         mon_resource.name.clone()
       }
@@ -239,18 +239,18 @@ async fn print_abilities(
     // Get ability names
     let mut names = Vec::new();
     for ab in abilities.into_iter() {
-      if !fast && let Ok(name) = get_name(&client, &ab.ability.names, "en").await {
-        names.push(name + if ab.hidden { " (Hidden)" } else { "" });
+      names.push(if !fast {
+        get_name!(ab.ability, client, "en") + if ab.hidden { " (Hidden)" } else { "" }
       } else {
-        names.push(ab.ability.name.clone() + if ab.hidden { " (hidden)" } else { "" });
-      }
+        ab.ability.name.clone() + if ab.hidden { " (hidden)" } else { "" }
+      });
     }
 
     // Return abilities
     result.push(format!(
       "{}:",
-      if !fast && let Ok(name) = get_pokemon_name(&client, &mon_resource, "en").await {
-        name
+      if !fast {
+        get_pokemon_name(&client, &mon_resource, "en").await
       } else {
         mon_resource.name.clone()
       }
@@ -308,20 +308,14 @@ async fn print_moves(args: &SubArgs, client: &RustemonClient) -> Result<Vec<Stri
         match *level {
           Some(x) if details.level_learned_at > x => {},
           _ => {
-            if !fast
-              && let Ok(x) = move_resource.move_.follow(&client).await
-              && let Ok(name) = get_name(&client, &x.names, "en").await
-            {
-              moves.push(Move {
-                name,
-                level: details.level_learned_at,
-              });
-            } else {
-              moves.push(Move {
-                name: move_resource.move_.name.clone(),
-                level: details.level_learned_at,
-              });
-            }
+            moves.push(Move {
+              name: if !fast {
+                get_name!(follow move_resource.move_, client, "en")
+              } else {
+                move_resource.move_.name.clone()
+              },
+              level: details.level_learned_at,
+            });
           },
         };
       }
@@ -343,8 +337,8 @@ async fn print_moves(args: &SubArgs, client: &RustemonClient) -> Result<Vec<Stri
   let mut result = Vec::new();
   result.push(format!(
     "{}:",
-    if !fast && let Ok(name) = get_pokemon_name(&client, &mon_resource, "en").await {
-      name
+    if !fast {
+      get_pokemon_name(&client, &mon_resource, "en").await
     } else {
       mon_resource.name.clone()
     }
@@ -396,19 +390,19 @@ async fn print_eggs(args: &SubArgs, client: &RustemonClient) -> Result<Vec<Strin
   // Get egg group names
   let mut egg_names = Vec::new();
   for egg in eggs.iter() {
-    if !fast && let Ok(name) = get_name(&client, &egg.names, "en").await {
-      egg_names.push(name);
+    egg_names.push(if !fast {
+      get_name!(egg, client, "en")
     } else {
-      egg_names.push(egg.name.clone());
-    }
+      egg.name.clone()
+    });
   }
 
   // Return egg groups
   let mut result = Vec::new();
   result.push(format!(
     "{}:",
-    if !fast && let Ok(name) = get_name(&client, &species.names, "en").await {
-      name
+    if !fast {
+      get_name!(species, client, "en")
     } else {
       species.name.clone()
     }
@@ -443,8 +437,8 @@ async fn print_genders(
   let mut result = Vec::new();
   result.push(format!(
     "{}:",
-    if !fast && let Ok(name) = get_name(&client, &species.names, "en").await {
-      name
+    if !fast {
+      get_name!(species, client, "en")
     } else {
       species.name.clone()
     }
@@ -513,16 +507,11 @@ async fn print_encounters(
     for enc in encounters.iter() {
       for det in enc.version_details.iter() {
         if det.version.name == version.to_string() {
-          encounter_names.push(
-            if !fast
-              && let Ok(x) = enc.location_area.follow(&client).await
-              && let Ok(name) = get_name(&client, &x.names, "en").await
-            {
-              name
-            } else {
-              enc.location_area.name.clone()
-            },
-          );
+          encounter_names.push(if !fast {
+            get_name!(follow enc.location_area, client, "en")
+          } else {
+            enc.location_area.name.clone()
+          });
           break;
         }
       }
@@ -536,8 +525,8 @@ async fn print_encounters(
     // Return location areas
     result.push(format!(
       "{}:",
-      if !fast && let Ok(name) = get_pokemon_name(&client, &mon_resource, "en").await {
-        name
+      if !fast {
+        get_pokemon_name(&client, &mon_resource, "en").await
       } else {
         mon_resource.name.clone()
       }
@@ -609,11 +598,8 @@ async fn print_evolutions(
           result.push(format!(
             "{} -> {}",
             get_evolution_name(&client, &chain.chain.species, "en", *fast, *secret).await,
-            if !fast
-              && let Ok(trigger) = method1.trigger.follow(&client).await
-              && let Ok(name) = get_name(&client, &trigger.names, "en").await
-            {
-              name
+            if !fast {
+              get_name!(follow method1.trigger, client, "en")
             } else {
               method1.trigger.name.clone()
             },
@@ -637,11 +623,8 @@ async fn print_evolutions(
             for method2 in evo2.evolution_details.iter() {
               let mut temp_steps: String = format!(
                 " -> {}",
-                if !fast
-                  && let Ok(trigger) = method2.trigger.follow(&client).await
-                  && let Ok(name) = get_name(&client, &trigger.names, "en").await
-                {
-                  name
+                if !fast {
+                  get_name!(follow method2.trigger, client, "en")
                 } else {
                   method2.trigger.name.clone()
                 },
@@ -670,8 +653,8 @@ async fn print_evolutions(
   } else {
     // No chain found => record species name to final result
     result.push(if !secret {
-      if !fast && let Ok(name) = get_name(&client, &species.names, "en").await {
-        name
+      if !fast {
+        get_name!(species, client, "en")
       } else {
         species.name.clone()
       }
