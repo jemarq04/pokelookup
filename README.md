@@ -1,4 +1,7 @@
-# pokelookup
+# pokelookup [![Latest Version]][crates.io]
+
+[Latest Version]: https://img.shields.io/crates/v/pokelookup.svg
+[crates.io]: https://crates.io/crates/pokelookup
 
 This is a package that gives an executable to help look up Pokemon details using [PokeAPI](https://pokeapi.co/) using the 
 [rustemon](https://crates.io/crates/rustemon) wrapper. The command allows for quick look-up of types, abilities, egg groups, and more.
