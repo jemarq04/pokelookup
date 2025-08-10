@@ -75,7 +75,7 @@ async fn print_varieties(
   };
 
   // Create pokemon species resource
-  let species = match pokemon_species::get_by_name(&pokemon, &client).await {
+  let species = match pokemon_species::get_by_name(&pokemon.replace(' ', "-"), &client).await {
     Ok(x) => x,
     Err(_) => {
       return Err(Args::command().error(
@@ -265,7 +265,7 @@ async fn print_moves(args: &SubArgs, client: &RustemonClient) -> Result<Vec<Stri
   };
 
   // Create pokemon resource
-  let mon_resource = match pokemon::get_by_name(&pokemon, &client).await {
+  let mon_resource = match pokemon::get_by_name(&pokemon.replace(" ", "-"), &client).await {
     Ok(x) => x,
     Err(_) => {
       let valid = Args::command().get_styles().get_valid().clone();
@@ -350,7 +350,7 @@ async fn print_eggs(args: &SubArgs, client: &RustemonClient) -> Result<Vec<Strin
   };
 
   // Create pokemon species resource
-  let species = match pokemon_species::get_by_name(&pokemon, &client).await {
+  let species = match pokemon_species::get_by_name(&pokemon.replace(" ", "-"), &client).await {
     Ok(x) => x,
     Err(_) => {
       return Err(Args::command().error(
@@ -423,7 +423,7 @@ async fn print_genders(
   };
 
   // Create pokemon species resource
-  let species = match pokemon_species::get_by_name(&pokemon, &client).await {
+  let species = match pokemon_species::get_by_name(&pokemon.replace(" ", "-"), &client).await {
     Ok(x) => x,
     Err(_) => {
       return Err(Args::command().error(
@@ -557,7 +557,7 @@ async fn print_evolutions(
   };
 
   // Create pokemon species resource
-  let species = match pokemon_species::get_by_name(&pokemon, &client).await {
+  let species = match pokemon_species::get_by_name(&pokemon.replace(" ", "-"), &client).await {
     Ok(x) => x,
     Err(_) => {
       return Err(Args::command().error(
