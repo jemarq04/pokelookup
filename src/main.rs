@@ -612,8 +612,7 @@ async fn print_evolutions(
           &client,
           &chain.chain.species,
           &lang.to_string(),
-          *fast,
-          *secret,
+          *fast || *secret,
         )
         .await,
       );
@@ -627,11 +626,10 @@ async fn print_evolutions(
             &client,
             &chain.chain.species,
             &lang.to_string(),
-            *fast,
-            *secret
+            *fast || *secret,
           )
           .await,
-          get_evolution_name(&client, &evo1.species, &lang.to_string(), *fast, *secret).await,
+          get_evolution_name(&client, &evo1.species, &lang.to_string(), *fast || *secret).await,
         ));
       } else {
         for method1 in evo1.evolution_details.iter() {
@@ -641,8 +639,7 @@ async fn print_evolutions(
               &client,
               &chain.chain.species,
               &lang.to_string(),
-              *fast,
-              *secret
+              *fast || *secret,
             )
             .await,
             if !fast {
@@ -663,7 +660,7 @@ async fn print_evolutions(
 
           result.last_mut().unwrap().push_str(&format!(
             " -> {}",
-            get_evolution_name(&client, &evo1.species, &lang.to_string(), *fast, *secret).await,
+            get_evolution_name(&client, &evo1.species, &lang.to_string(), *fast || *secret).await,
           ));
 
           let mut first_evo2 = true;
@@ -687,7 +684,8 @@ async fn print_evolutions(
 
               temp_steps.push_str(&format!(
                 " -> {}",
-                get_evolution_name(&client, &evo2.species, &lang.to_string(), *fast, *secret).await,
+                get_evolution_name(&client, &evo2.species, &lang.to_string(), *fast || *secret)
+                  .await,
               ));
 
               if first_evo2 {
@@ -703,14 +701,10 @@ async fn print_evolutions(
     }
   } else {
     // No chain found => record species name to final result
-    result.push(if !secret {
-      if !fast {
-        get_name!(species, client, lang.to_string())
-      } else {
-        species.name.clone()
-      }
+    result.push(if !fast {
+      get_name!(species, client, lang.to_string())
     } else {
-      String::from("MON")
+      species.name.clone()
     });
   }
 
@@ -723,7 +717,7 @@ async fn print_evolutions(
     for line in result.iter() {
       // Get list of pokemon names
       let mut names: Vec<String> = line.split(" -> ").map(|s| s.to_string()).collect();
-      for i in (1..6).step_by(2).rev() {
+      for i in (1..4).step_by(2).rev() {
         if names.len() > i {
           names.remove(i);
         }
@@ -743,6 +737,21 @@ async fn print_evolutions(
     temp.push(prev_line);
 
     // Set output to temp vector
+    result = temp;
+  }
+
+  // Hide pokemon names, if desired
+  if *secret {
+    let mut temp = Vec::new();
+
+    for line in result.iter() {
+      let mut info: Vec<String> = line.split(" -> ").map(|s| s.to_string()).collect();
+      for i in (0..info.len()).step_by(2) {
+        info[i] = String::from("MON");
+      }
+      temp.push(info.join(" -> "));
+    }
+
     result = temp;
   }
 

@@ -542,16 +542,11 @@ pub async fn get_evolution_name(
   species: &rustemon::model::resource::NamedApiResource<rustemon::model::pokemon::PokemonSpecies>,
   lang: &str,
   fast: bool,
-  secret: bool,
 ) -> String {
-  if !secret {
-    if !fast {
-      get_name!(follow species, client, lang)
-    } else {
-      species.name.clone()
-    }
+  if !fast {
+    get_name!(follow species, client, lang)
   } else {
-    String::from("MON")
+    species.name.clone()
   }
 }
 
