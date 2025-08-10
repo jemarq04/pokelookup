@@ -1235,4 +1235,130 @@ mod tests {
       Err(err) => err.exit(),
     }
   }
+
+  #[tokio::test]
+  async fn test_evolutions() {
+    let client = RustemonClient::default();
+
+    let success = vec![
+      vec![
+        "eevee -> use-item (item: water-stone) -> vaporeon",
+        "eevee -> use-item (item: thunder-stone) -> jolteon",
+        "eevee -> use-item (item: fire-stone) -> flareon",
+        "eevee -> level-up (min_happiness: 160, time_of_day: day) -> espeon",
+        "eevee -> level-up (min_happiness: 160, time_of_day: night) -> umbreon",
+        "eevee -> level-up (location: eterna-forest) -> leafeon",
+        "eevee -> level-up (location: pinwheel-forest) -> leafeon",
+        "eevee -> level-up (location: kalos-route-20) -> leafeon",
+        "eevee -> use-item (item: leaf-stone) -> leafeon",
+        "eevee -> level-up (location: sinnoh-route-217) -> glaceon",
+        "eevee -> level-up (location: twist-mountain) -> glaceon",
+        "eevee -> level-up (location: frost-cavern) -> glaceon",
+        "eevee -> use-item (item: ice-stone) -> glaceon",
+        "eevee -> level-up (known_move_type: fairy, min_affection: 2) -> sylveon",
+        "eevee -> level-up (known_move_type: fairy, min_happiness: 160) -> sylveon",
+      ],
+      vec![
+        "Eevee -> Use item (item: Water Stone) -> Vaporeon",
+        "Eevee -> Use item (item: Thunder Stone) -> Jolteon",
+        "Eevee -> Use item (item: Fire Stone) -> Flareon",
+        "Eevee -> Level up (min_happiness: 160, time_of_day: day) -> Espeon",
+        "Eevee -> Level up (min_happiness: 160, time_of_day: night) -> Umbreon",
+        "Eevee -> Level up (location: Eterna Forest) -> Leafeon",
+        "Eevee -> Level up (location: Pinwheel Forest) -> Leafeon",
+        "Eevee -> Level up (location: Route 20) -> Leafeon",
+        "Eevee -> Use item (item: Leaf Stone) -> Leafeon",
+        "Eevee -> Level up (location: Route 217) -> Glaceon",
+        "Eevee -> Level up (location: Twist Mountain) -> Glaceon",
+        "Eevee -> Level up (location: Frost Cavern) -> Glaceon",
+        "Eevee -> Use item (item: Ice Stone) -> Glaceon",
+        "Eevee -> Level up (known_move_type: Fairy, min_affection: 2) -> Sylveon",
+        "Eevee -> Level up (known_move_type: Fairy, min_happiness: 160) -> Sylveon",
+      ],
+    ];
+
+    for (idx, vals) in success.into_iter().enumerate() {
+      let args = SubArgs::EvolutionCmd {
+        pokemon: String::from("Eevee"),
+        fast: idx == 0,
+        lang: LanguageId::En,
+        secret: false,
+      };
+
+      match print_evolutions(&args, &client).await {
+        Ok(res) => assert_eq!(res, vals),
+        Err(err) => err.exit(),
+      }
+    }
+  }
+
+  #[tokio::test]
+  async fn test_evolutions_secret() {
+    let client = RustemonClient::default();
+
+    let success = vec![
+      "MON -> use-item (item: water-stone) -> MON",
+      "MON -> use-item (item: thunder-stone) -> MON",
+      "MON -> use-item (item: fire-stone) -> MON",
+      "MON -> level-up (min_happiness: 160, time_of_day: day) -> MON",
+      "MON -> level-up (min_happiness: 160, time_of_day: night) -> MON",
+      "MON -> level-up (location: eterna-forest) -> MON",
+      "MON -> level-up (location: pinwheel-forest) -> MON",
+      "MON -> level-up (location: kalos-route-20) -> MON",
+      "MON -> use-item (item: leaf-stone) -> MON",
+      "MON -> level-up (location: sinnoh-route-217) -> MON",
+      "MON -> level-up (location: twist-mountain) -> MON",
+      "MON -> level-up (location: frost-cavern) -> MON",
+      "MON -> use-item (item: ice-stone) -> MON",
+      "MON -> level-up (known_move_type: fairy, min_affection: 2) -> MON",
+      "MON -> level-up (known_move_type: fairy, min_happiness: 160) -> MON",
+    ];
+
+    let args = SubArgs::EvolutionCmd {
+      pokemon: String::from("Eevee"),
+      fast: true,
+      lang: LanguageId::En,
+      secret: true,
+    };
+
+    match print_evolutions(&args, &client).await {
+      Ok(res) => assert_eq!(res, success),
+      Err(err) => err.exit(),
+    }
+  }
+
+  #[tokio::test]
+  async fn test_evolutions_language() {
+    let client = RustemonClient::default();
+
+    let success = vec![
+      "Eevee -> use-item (item: Piedra Agua) -> Vaporeon",
+      "Eevee -> use-item (item: Piedra Trueno) -> Jolteon",
+      "Eevee -> use-item (item: Piedra Fuego) -> Flareon",
+      "Eevee -> level-up (min_happiness: 160, time_of_day: day) -> Espeon",
+      "Eevee -> level-up (min_happiness: 160, time_of_day: night) -> Umbreon",
+      "Eevee -> level-up (location: eterna-forest) -> Leafeon",
+      "Eevee -> level-up (location: pinwheel-forest) -> Leafeon",
+      "Eevee -> level-up (location: Ruta 20) -> Leafeon",
+      "Eevee -> use-item (item: Piedra Hoja) -> Leafeon",
+      "Eevee -> level-up (location: sinnoh-route-217) -> Glaceon",
+      "Eevee -> level-up (location: twist-mountain) -> Glaceon",
+      "Eevee -> level-up (location: Gruta Helada) -> Glaceon",
+      "Eevee -> use-item (item: Piedra Hielo) -> Glaceon",
+      "Eevee -> level-up (known_move_type: Hada, min_affection: 2) -> Sylveon",
+      "Eevee -> level-up (known_move_type: Hada, min_happiness: 160) -> Sylveon",
+    ];
+
+    let args = SubArgs::EvolutionCmd {
+      pokemon: String::from("Eevee"),
+      fast: false,
+      lang: LanguageId::Es,
+      secret: false,
+    };
+
+    match print_evolutions(&args, &client).await {
+      Ok(res) => assert_eq!(res, success),
+      Err(err) => err.exit(),
+    }
+  }
 }
