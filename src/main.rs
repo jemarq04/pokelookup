@@ -1316,6 +1316,7 @@ mod tests {
         fast: idx == 0,
         lang: LanguageId::En,
         secret: false,
+        all: true,
       };
 
       match print_evolutions(&args, &client).await {
@@ -1352,6 +1353,7 @@ mod tests {
       fast: true,
       lang: LanguageId::En,
       secret: true,
+      all: true,
     };
 
     match print_evolutions(&args, &client).await {
@@ -1387,6 +1389,7 @@ mod tests {
       fast: false,
       lang: LanguageId::Es,
       secret: false,
+      all: true,
     };
 
     match print_evolutions(&args, &client).await {
