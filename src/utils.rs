@@ -392,6 +392,8 @@ pub enum LanguageId {
 }
 impl_Display!(LanguageId);
 
+// Helper Functions
+
 #[macro_export]
 macro_rules! get_name {
   ( follow $T:expr, $client:ident, $lang:expr ) => {{
@@ -419,8 +421,6 @@ macro_rules! get_name {
     result
   }};
 }
-
-// Helper Functions
 
 pub async fn get_pokemon_name(
   client: &RustemonClient,
