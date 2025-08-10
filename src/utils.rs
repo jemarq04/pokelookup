@@ -241,6 +241,22 @@ pub enum SubArgs {
       help = "name of optional secondary type"
     )]
     secondary: Option<Type>,
+
+    #[arg(short, long, help = "print output as a list instead of a table")]
+    list: bool,
+
+    #[arg(short, long, help = "skip API requests for formatted names")]
+    fast: bool,
+
+    #[arg(value_enum,
+      short = 'L',
+      long,
+      value_name = "LANGUAGE",
+      default_value_t = LanguageId::En,
+      hide_possible_values=true,
+      help = "language ID for API requests for formatted names"
+    )]
+    lang: LanguageId,
   },
 }
 
@@ -370,15 +386,6 @@ pub enum Type {
   Fairy,
 }
 impl_Display!(Type);
-impl Type {
-  pub fn to_title(name: &str) -> Option<String> {
-    if let Ok(title) = Self::from_str(name, true) {
-      Some(format!("{:?}", title))
-    } else {
-      None
-    }
-  }
-}
 
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, ValueEnum)]
 pub enum LanguageId {
