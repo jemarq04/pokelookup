@@ -1467,4 +1467,50 @@ mod tests {
       Err(err) => err.exit(),
     }
   }
+
+  #[tokio::test]
+  async fn test_evolutions_exceptions() {
+    let client = RustemonClient::default();
+
+    let success = vec![
+      "Qwilfish",
+      "Qwilfish -> strong-style-move (known_move: Barb Barrage) -> Overqwil",
+    ];
+
+    let args = SubArgs::EvolutionCmd {
+      pokemon: String::from("Qwilfish"),
+      fast: false,
+      lang: LanguageId::En,
+      secret: false,
+      all: false,
+    };
+
+    match print_evolutions(&args, &client).await {
+      Ok(res) => assert_eq!(res, success),
+      Err(err) => err.exit(),
+    }
+  }
+
+  #[tokio::test]
+  async fn test_evolutions_regional_forms() {
+    let client = RustemonClient::default();
+
+    let success = vec![
+      "Rattata -> Level up (min_level: 20) -> Raticate",
+      "Rattata -> Level up (min_level: 20, time_of_day: night) -> Raticate",
+    ];
+
+    let args = SubArgs::EvolutionCmd {
+      pokemon: String::from("Rattata"),
+      fast: false,
+      lang: LanguageId::En,
+      secret: false,
+      all: false,
+    };
+
+    match print_evolutions(&args, &client).await {
+      Ok(res) => assert_eq!(res, success),
+      Err(err) => err.exit(),
+    }
+  }
 }
