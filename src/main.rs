@@ -134,34 +134,13 @@ async fn print_types(args: &SubArgs, client: &RustemonClient) -> Result<Vec<Stri
   // Iterate over all requested pokemon
   let mut result = Vec::new();
   for mon_resource in resources.iter() {
-    // Get type resources
-    let types = match future::try_join_all(
-      mon_resource
-        .types
-        .iter()
-        .map(async |t| t.type_.follow(&client).await),
-    )
-    .await
-    {
-      Ok(x) => x,
-      Err(_) => {
-        return Err(Args::command().error(
-          ErrorKind::InvalidValue,
-          format!(
-            "API error: could not retrieve types for {}",
-            mon_resource.name,
-          ),
-        ));
-      },
-    };
-
     // Get type names
     let mut type_names = Vec::new();
-    for type_ in types.iter() {
+    for item in mon_resource.types.iter() {
       type_names.push(if !fast {
-        get_name!(type_, client, lang.to_string())
+        get_name!(follow item.type_, client, lang.to_string())
       } else {
-        type_.name.clone()
+        item.type_.name.clone()
       });
     }
 
