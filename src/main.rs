@@ -590,6 +590,7 @@ async fn print_evolutions(
 
   // Iterate over evolution chain, if present
   let mut result: Vec<String> = Vec::new();
+  let mut force_show_all = false;
   if let Some(chain_resource) = species.evolution_chain {
     // Get evolution chain resource
     let chain = match chain_resource.follow(&client).await {
@@ -616,6 +617,15 @@ async fn print_evolutions(
         )
         .await,
       );
+    }
+
+    // Record exceptional cases
+    if svec![
+      "rattata", "sandshrew", "vulpix", "meowth", "cubone", "slowpoke", "darumaka"
+    ]
+    .contains(&chain.chain.species.name)
+    {
+      force_show_all = true;
     }
 
     for evo1 in chain.chain.evolves_to.iter() {
@@ -663,6 +673,28 @@ async fn print_evolutions(
             get_evolution_name(&client, &evo1.species, &lang.to_string(), *fast || *secret).await,
           ));
 
+          // Check for exceptional cases
+          if svec!["sirfetchd", "overqwil", "cursola", "basculegion"].contains(&evo1.species.name) {
+            result.insert(
+              0,
+              if !fast {
+                get_name!(follow chain.chain.species, client, lang.to_string())
+              } else {
+                chain.chain.species.name.clone()
+              },
+            );
+          } else if evo1.species.name == "mr-mime" {
+            result.insert(0, result.last().unwrap().clone());
+            *result.last_mut().unwrap() = if !fast {
+              get_name!(follow evo1.species, client, lang.to_string())
+            } else {
+              evo1.species.name.clone()
+            };
+          } else if evo1.species.name == "linoone" {
+            result.insert(0, result.last().unwrap().clone());
+          }
+
+          // Check for second evolution
           let mut first_evo2 = true;
           let curr_steps = result.last().unwrap().clone();
           for evo2 in evo1.evolves_to.iter() {
@@ -709,7 +741,7 @@ async fn print_evolutions(
   }
 
   // Only provide newest evolution methods
-  if !all {
+  if !all && !force_show_all {
     let mut temp = Vec::new();
     let mut prev_names = Vec::new();
     let mut prev_line = String::new();
