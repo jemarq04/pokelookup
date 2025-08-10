@@ -1410,13 +1410,19 @@ mod tests {
     let client = RustemonClient::default();
 
     let success = vec![
-      "   *0      *0.5      *2   ", "-------- -------- --------", "Dragon   Fighting Poison  ",
-      "         Bug      Steel   ", "         Dark             ",
+      "     *0          *0.5          *2     ",
+      "------------ ------------ ------------",
+      "Dragon       Fighting     Poison      ",
+      "             Bug          Steel       ",
+      "             Dark                     ",
     ];
 
     let args = SubArgs::MatchupCmd {
       primary: Type::Fairy,
       secondary: None,
+      fast: false,
+      lang: LanguageId::En,
+      list: false,
     };
 
     match print_matchups(&args, &client).await {
@@ -1430,17 +1436,20 @@ mod tests {
     let client = RustemonClient::default();
 
     let success = vec![
-      "   *0     *0.25     *0.5      *2       *4   ",
-      "-------- -------- -------- -------- --------",
-      "Electric          Flying   Ground           ",
-      "                  Steel    Water            ",
-      "                  Poison   Grass            ",
-      "                  Rock     Ice              ",
+      "     *0         *0.25         *0.5          *2           *4     ",
+      "------------ ------------ ------------ ------------ ------------",
+      "Electric                  Flying       Ground                   ",
+      "                          Steel        Water                    ",
+      "                          Poison       Grass                    ",
+      "                          Rock         Ice                      ",
     ];
 
     let args = SubArgs::MatchupCmd {
       primary: Type::Electric,
       secondary: Some(Type::Ground),
+      fast: false,
+      lang: LanguageId::En,
+      list: false,
     };
 
     match print_matchups(&args, &client).await {
