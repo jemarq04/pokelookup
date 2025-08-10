@@ -33,7 +33,7 @@ pub enum SubArgs {
     fast: bool,
 
     #[arg(value_enum,
-      short,
+      short = 'L',
       long,
       value_name = "LANGUAGE",
       default_value_t = LanguageId::En,
@@ -53,7 +53,7 @@ pub enum SubArgs {
     fast: bool,
 
     #[arg(value_enum,
-      short,
+      short = 'L',
       long,
       value_name = "LANGUAGE",
       default_value_t = LanguageId::En,
@@ -81,7 +81,7 @@ pub enum SubArgs {
     fast: bool,
 
     #[arg(value_enum,
-      short,
+      short = 'L',
       long,
       value_name = "LANGUAGE",
       default_value_t = LanguageId::En,
@@ -110,7 +110,7 @@ pub enum SubArgs {
     fast: bool,
 
     #[arg(value_enum,
-      short,
+      short = 'L',
       long,
       value_name = "LANGUAGE",
       default_value_t = LanguageId::En,
@@ -137,7 +137,7 @@ pub enum SubArgs {
     fast: bool,
 
     #[arg(value_enum,
-      short,
+      short = 'L',
       long,
       value_name = "LANGUAGE",
       default_value_t = LanguageId::En,
@@ -157,7 +157,7 @@ pub enum SubArgs {
     fast: bool,
 
     #[arg(value_enum,
-      short,
+      short = 'L',
       long,
       value_name = "LANGUAGE",
       default_value_t = LanguageId::En,
@@ -180,7 +180,7 @@ pub enum SubArgs {
     fast: bool,
 
     #[arg(value_enum,
-      short,
+      short = 'L',
       long,
       value_name = "LANGUAGE",
       default_value_t = LanguageId::En,
@@ -203,7 +203,7 @@ pub enum SubArgs {
     fast: bool,
 
     #[arg(value_enum,
-      short,
+      short = 'L',
       long,
       value_name = "LANGUAGE",
       default_value_t = LanguageId::En,
