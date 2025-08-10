@@ -259,6 +259,13 @@ macro_rules! impl_Display {
   };
 }
 
+#[macro_export]
+macro_rules! svec {
+  () => {vec![]};
+  ( $elem:expr; $n:expr ) => {vec![$elem.to_string(); $n]};
+  ( $($x:expr),+ $(,)? ) => {vec![$($x.to_string()),*]};
+}
+
 #[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Debug, ValueEnum)]
 pub enum VersionGroup {
   RedBlue,
