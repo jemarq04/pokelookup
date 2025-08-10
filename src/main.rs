@@ -1459,6 +1459,30 @@ mod tests {
   }
 
   #[tokio::test]
+  async fn test_matchups_list() {
+    let client = RustemonClient::default();
+
+    let success = vec![
+      "Hada/Acero:", " - 0x:", "   * Dragón", "   * Veneno", "", " - 0.25x:", "   * Bicho", "",
+      " - 0.5x:", "   * Siniestro", "   * Normal", "   * Volador", "   * Roca", "   * Planta",
+      "   * Psíquico", "   * Hielo", "   * Hada", "", " - 2x:", "   * Tierra", "   * Fuego",
+    ];
+
+    let args = SubArgs::MatchupCmd {
+      primary: Type::Fairy,
+      secondary: Some(Type::Steel),
+      fast: false,
+      lang: LanguageId::Es,
+      list: true,
+    };
+
+    match print_matchups(&args, &client).await {
+      Ok(res) => assert_eq!(res, success),
+      Err(err) => err.exit(),
+    }
+  }
+
+  #[tokio::test]
   async fn test_evolutions() {
     let client = RustemonClient::default();
 
