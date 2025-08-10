@@ -570,6 +570,7 @@ async fn print_evolutions(
     fast,
     lang,
     secret,
+    all,
     ..
   } = args
   else {
@@ -711,6 +712,38 @@ async fn print_evolutions(
     } else {
       String::from("MON")
     });
+  }
+
+  // Only provide newest evolution methods
+  if !all {
+    let mut temp = Vec::new();
+    let mut prev_names = Vec::new();
+    let mut prev_line = String::new();
+
+    for line in result.iter() {
+      // Get list of pokemon names
+      let mut names: Vec<String> = line.split(" -> ").map(|s| s.to_string()).collect();
+      for i in (1..6).step_by(2).rev() {
+        if names.len() > i {
+          names.remove(i);
+        }
+      }
+
+      // Add most recent evolution method to temp vector
+      if names == prev_names {
+        prev_line = line.clone();
+      } else {
+        if !prev_line.is_empty() {
+          temp.push(prev_line);
+        }
+        prev_names = names.clone();
+        prev_line = line.clone();
+      }
+    }
+    temp.push(prev_line);
+
+    // Set output to temp vector
+    result = temp;
   }
 
   Ok(result)

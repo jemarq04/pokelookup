@@ -218,6 +218,9 @@ pub enum SubArgs {
       help = "hide the names of the pokemon in the evolution chain"
     )]
     secret: bool,
+
+    #[arg(short, long, help = "show all evolution chains, even outdated ones")]
+    all: bool,
   },
 
   /// Look up the type weaknesses/resistances for given type(s).
