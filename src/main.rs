@@ -1406,4 +1406,33 @@ mod tests {
       Err(err) => err.exit(),
     }
   }
+
+  #[tokio::test]
+  async fn test_evolutions_no_all() {
+    let client = RustemonClient::default();
+
+    let success = vec![
+      "Eevee -> Use item (item: Water Stone) -> Vaporeon",
+      "Eevee -> Use item (item: Thunder Stone) -> Jolteon",
+      "Eevee -> Use item (item: Fire Stone) -> Flareon",
+      "Eevee -> Level up (min_happiness: 160, time_of_day: day) -> Espeon",
+      "Eevee -> Level up (min_happiness: 160, time_of_day: night) -> Umbreon",
+      "Eevee -> Use item (item: Leaf Stone) -> Leafeon",
+      "Eevee -> Use item (item: Ice Stone) -> Glaceon",
+      "Eevee -> Level up (known_move_type: Fairy, min_happiness: 160) -> Sylveon",
+    ];
+
+    let args = SubArgs::EvolutionCmd {
+      pokemon: String::from("Eevee"),
+      fast: false,
+      lang: LanguageId::En,
+      secret: false,
+      all: false,
+    };
+
+    match print_evolutions(&args, &client).await {
+      Ok(res) => assert_eq!(res, success),
+      Err(err) => err.exit(),
+    }
+  }
 }
