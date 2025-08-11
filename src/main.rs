@@ -447,8 +447,8 @@ async fn print_genders(
   if rate < 0.0 {
     result.push(format!(" Genderless"));
   } else {
-    result.push(format!(" M: {:>5.1}", 100.0 - rate));
-    result.push(format!(" F: {:>5.1}", rate));
+    result.push(format!(" M: {:>5.1}%", 100.0 - rate));
+    result.push(format!(" F: {:>5.1}%", rate));
   }
 
   Ok(result)
@@ -1303,8 +1303,8 @@ mod tests {
           s,
           vec![
             if fast { "meowth:" } else { "Meowth:" },
-            " M:  50.0",
-            " F:  50.0",
+            " M:  50.0%",
+            " F:  50.0%",
           ]
         ),
         Err(err) => err.exit(),
