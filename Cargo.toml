@@ -11,10 +11,10 @@ repository = "https://github.com/jemarq04/pokelookup"
 keywords = ["pokemon", "pokeapi", "pokedex"]
 
 [dependencies]
-clap = { version = "=4.5.43", features = ["derive"] }
+clap = { version = "4.5.43", features = ["derive"] }
 futures = "0.3.31"
 itertools = "0.14.0"
-rustemon = "=4.3.0"
+rustemon = "4.3.0"
 serde_json = "1.0.142"
 tokio = {version="1.47.1", features=["full"]}
 ureq = "3.0.12"
