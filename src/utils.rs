@@ -1,14 +1,34 @@
+use clap::builder::styling::{AnsiColor, Effects, Style, Styles};
 use clap::{Parser, Subcommand, ValueEnum};
 use futures::future;
 use rustemon::Follow;
 use rustemon::client::RustemonClient;
 use rustemon::pokemon::*;
 
+const HEADER: Style = AnsiColor::Green.on_default().effects(Effects::BOLD);
+const USAGE: Style = AnsiColor::Green.on_default().effects(Effects::BOLD);
+const LITERAL: Style = AnsiColor::Cyan.on_default().effects(Effects::BOLD);
+const PLACEHOLDER: Style = AnsiColor::Cyan.on_default();
+const ERROR: Style = AnsiColor::Red.on_default().effects(Effects::BOLD);
+const VALID: Style = AnsiColor::Cyan.on_default().effects(Effects::BOLD);
+const INVALID: Style = AnsiColor::Yellow.on_default().effects(Effects::BOLD);
+
+/// Cargo's color style
+/// [source](https://github.com/crate-ci/clap-cargo/blob/master/src/style.rs)
+const CARGO_STYLING: Styles = Styles::styled()
+  .header(HEADER)
+  .usage(USAGE)
+  .literal(LITERAL)
+  .placeholder(PLACEHOLDER)
+  .error(ERROR)
+  .valid(VALID)
+  .invalid(INVALID);
+
 /// Look up pokemon details using PokeAPI using the 'rustemon' wrapper. Note that sometimes pokemon need to be listed
 /// with their forms if the form is distinct enough (e.g. pumkaboo-small or toxtricity-amped). These varieties can be
 /// listed using the 'list' subcommand.
 #[derive(Parser, Debug)]
-#[command(version, long_about)]
+#[command(version, long_about, styles=CARGO_STYLING)]
 pub struct Args {
   #[arg(
     long,
