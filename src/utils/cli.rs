@@ -275,6 +275,11 @@ pub enum SubArgs {
     )]
     lang: LanguageId,
   },
+
+  /// Open web pages for a given endpoint. A valid endpoint includes pokemon, abilities, items, and more.
+  #[cfg(feature = "web")]
+  #[command(name = "dex", long_about)]
+  DexCmd {},
 }
 
 pub fn get_appname() -> String {

@@ -92,6 +92,8 @@ async fn main() {
       fast,
       lang,
     } => lookup::print_matchups(&client, primary, secondary, list, fast, lang).await,
+    #[cfg(feature = "web")]
+    SubArgs::DexCmd { .. } => lookup::open_dex(),
   };
 
   // Handle output

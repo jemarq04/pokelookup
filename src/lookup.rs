@@ -24,3 +24,8 @@ pub use evolutions::print_evolutions;
 
 mod matchups;
 pub use matchups::print_matchups;
+
+#[cfg(feature = "web")]
+mod dex;
+#[cfg(feature = "web")]
+pub use dex::open_dex;
