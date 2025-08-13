@@ -10,6 +10,7 @@ on:
     paths:
       - 'src/**'
   workflow_dispatch:
+  merge_group:
 
 jobs:
   format:
