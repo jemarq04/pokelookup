@@ -2,9 +2,13 @@ name: CI
 
 on:
   pull_request:
+    path:
+      - 'src/**'
   push:
     branches:
       - main
+    path:
+      - 'src/**'
   workflow_dispatch:
 
 jobs:
