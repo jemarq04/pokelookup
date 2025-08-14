@@ -93,7 +93,25 @@ async fn main() {
       lang,
     } => lookup::print_matchups(&client, primary, secondary, list, fast, lang).await,
     #[cfg(feature = "web")]
-    SubArgs::DexCmd { .. } => lookup::open_dex(),
+    SubArgs::DexCmd {
+      endpoint,
+      generation,
+      ..
+    } => {
+      if let Some(x) = endpoint.pokemon {
+        lookup::dex::open_pokedex(x, generation)
+      } else if let Some(_x) = endpoint.region {
+        lookup::dex::open_pokearth()
+      } else if let Some(_x) = endpoint.move_ {
+        lookup::dex::open_attackdex()
+      } else if let Some(_x) = endpoint.ability {
+        lookup::dex::open_abilitydex()
+      } else if let Some(_x) = endpoint.item {
+        lookup::dex::open_itemdex()
+      } else {
+        unreachable!()
+      }
+    },
   };
 
   // Handle output

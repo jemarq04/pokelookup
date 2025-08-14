@@ -26,6 +26,6 @@ mod matchups;
 pub use matchups::print_matchups;
 
 #[cfg(feature = "web")]
-mod dex;
+pub mod dex;
 #[cfg(feature = "web")]
 mod pokedex;
