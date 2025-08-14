@@ -2,6 +2,8 @@ use crate::impl_Display;
 use clap::builder::styling::{AnsiColor, Effects, Style, Styles};
 use clap::{CommandFactory, Parser, Subcommand, ValueEnum};
 
+pub const LATEST_GEN: i64 = 9;
+
 pub const HEADER: Style = AnsiColor::Green.on_default().effects(Effects::BOLD);
 pub const USAGE: Style = AnsiColor::Green.on_default().effects(Effects::BOLD);
 pub const LITERAL: Style = AnsiColor::Cyan.on_default().effects(Effects::BOLD);
@@ -286,28 +288,29 @@ pub enum SubArgs {
     #[arg(short = 'A', long, help = "name of area within region")]
     area: Option<String>,
 
-    #[arg(short, long = "gen", help = "optional name of generation to use")]
-    generation: Option<i64>,
+    #[arg(short, long = "gen", default_value_t = LATEST_GEN, help = "optional name of generation to use")]
+    generation: i64,
   },
 }
 
+#[cfg(feature = "web")]
 #[derive(Debug, clap::Args)]
 #[group(required = true, multiple = false)]
 pub struct Endpoints {
   #[arg(short, long, conflicts_with_all = ["area"], help = "name of pokemon")]
-  pokemon: Option<String>,
+  pub pokemon: Option<String>,
 
   #[arg(short, long, help = "name of region")]
-  region: Option<String>,
+  pub region: Option<String>,
 
   #[arg(short, long, conflicts_with = "area", help = "name of move")]
-  move_: Option<String>,
+  pub move_: Option<String>,
 
   #[arg(short, long, conflicts_with_all = ["area", "generation"], help = "name of ability")]
-  ability: Option<String>,
+  pub ability: Option<String>,
 
   #[arg(short, long, conflicts_with_all = ["area", "generation"], help = "name of item")]
-  item: Option<String>,
+  pub item: Option<String>,
 }
 
 pub fn get_appname() -> String {
