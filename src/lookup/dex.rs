@@ -7,6 +7,7 @@ use clap::error::ErrorKind;
 const LATEST_GEN: i64 = 9;
 
 pub fn open_pokedex(pokemon: String, generation: Option<i64>) -> Result<Vec<String>, clap::Error> {
+  let pokemon = pokemon.to_lowercase().replace(" ", "");
   match generation {
     None | Some(0) => {
       if let Err(_) = open::that(format!("https://www.serebii.net/pokemon/{pokemon}")) {
