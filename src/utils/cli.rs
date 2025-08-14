@@ -280,7 +280,6 @@ pub enum SubArgs {
   #[cfg(feature = "web")]
   #[command(name = "dex", long_about)]
   DexCmd {
-
     #[command(flatten)]
     endpoint: Endpoints,
 
@@ -295,20 +294,20 @@ pub enum SubArgs {
 #[derive(Debug, clap::Args)]
 #[group(required = true, multiple = false)]
 pub struct Endpoints {
-    #[arg(short, long, conflicts_with_all = ["area"], help = "name of pokemon")]
-    pokemon: Option<String>,
+  #[arg(short, long, conflicts_with_all = ["area"], help = "name of pokemon")]
+  pokemon: Option<String>,
 
-    #[arg(short, long, help = "name of region")]
-    region: Option<String>,
+  #[arg(short, long, help = "name of region")]
+  region: Option<String>,
 
-    #[arg(short, long, conflicts_with = "area", help = "name of move")]
-    move_: Option<String>,
+  #[arg(short, long, conflicts_with = "area", help = "name of move")]
+  move_: Option<String>,
 
-    #[arg(short, long, conflicts_with_all = ["area", "generation"], help = "name of ability")]
-    ability: Option<String>,
+  #[arg(short, long, conflicts_with_all = ["area", "generation"], help = "name of ability")]
+  ability: Option<String>,
 
-    #[arg(short, long, conflicts_with_all = ["area", "generation"], help = "name of item")]
-    item: Option<String>,
+  #[arg(short, long, conflicts_with_all = ["area", "generation"], help = "name of item")]
+  item: Option<String>,
 }
 
 pub fn get_appname() -> String {
