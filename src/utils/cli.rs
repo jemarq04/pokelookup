@@ -279,7 +279,36 @@ pub enum SubArgs {
   /// Open web pages for a given endpoint. A valid endpoint includes pokemon, abilities, items, and more.
   #[cfg(feature = "web")]
   #[command(name = "dex", long_about)]
-  DexCmd {},
+  DexCmd {
+
+    #[command(flatten)]
+    endpoint: Endpoints,
+
+    #[arg(short = 'A', long, help = "name of area within region")]
+    area: Option<String>,
+
+    #[arg(short, long = "gen", help = "optional name of generation to use")]
+    generation: Option<i64>,
+  },
+}
+
+#[derive(Debug, clap::Args)]
+#[group(required = true, multiple = false)]
+pub struct Endpoints {
+    #[arg(short, long, conflicts_with_all = ["area"], help = "name of pokemon")]
+    pokemon: Option<String>,
+
+    #[arg(short, long, help = "name of region")]
+    region: Option<String>,
+
+    #[arg(short, long, conflicts_with = "area", help = "name of move")]
+    move_: Option<String>,
+
+    #[arg(short, long, conflicts_with_all = ["area", "generation"], help = "name of ability")]
+    ability: Option<String>,
+
+    #[arg(short, long, conflicts_with_all = ["area", "generation"], help = "name of item")]
+    item: Option<String>,
 }
 
 pub fn get_appname() -> String {
