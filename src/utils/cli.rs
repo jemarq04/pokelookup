@@ -2,8 +2,6 @@ use crate::impl_Display;
 use clap::builder::styling::{AnsiColor, Effects, Style, Styles};
 use clap::{CommandFactory, Parser, Subcommand, ValueEnum};
 
-pub const LATEST_GEN: i64 = 9;
-
 pub const HEADER: Style = AnsiColor::Green.on_default().effects(Effects::BOLD);
 pub const USAGE: Style = AnsiColor::Green.on_default().effects(Effects::BOLD);
 pub const LITERAL: Style = AnsiColor::Cyan.on_default().effects(Effects::BOLD);
@@ -288,8 +286,8 @@ pub enum SubArgs {
     #[arg(short = 'A', long, help = "name of area within region")]
     area: Option<String>,
 
-    #[arg(short, long = "gen", default_value_t = LATEST_GEN, help = "optional name of generation to use")]
-    generation: i64,
+    #[arg(short, long = "gen", help = "optional name of generation to use")]
+    generation: Option<i64>,
   },
 }
 
