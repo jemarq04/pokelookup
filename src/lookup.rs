@@ -28,4 +28,4 @@ pub use matchups::print_matchups;
 #[cfg(feature = "web")]
 mod dex;
 #[cfg(feature = "web")]
-pub use dex::open_dex;
+mod pokedex;
