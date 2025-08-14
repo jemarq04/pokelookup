@@ -5,6 +5,9 @@ use clap::Parser;
 use rustemon::client::RustemonClient;
 use utils::cli::{Args, SubArgs};
 
+#[cfg(feature = "web")]
+use utils::cli::DexMode;
+
 #[tokio::main]
 async fn main() {
   let mut args = Args::parse();
@@ -96,21 +99,13 @@ async fn main() {
     SubArgs::DexCmd {
       endpoint,
       generation,
-      ..
-    } => {
-      if let Some(x) = endpoint.pokemon {
-        lookup::dex::open_pokedex(x, generation)
-      } else if let Some(_x) = endpoint.region {
-        lookup::dex::open_pokearth()
-      } else if let Some(_x) = endpoint.move_ {
-        lookup::dex::open_attackdex()
-      } else if let Some(_x) = endpoint.ability {
-        lookup::dex::open_abilitydex()
-      } else if let Some(_x) = endpoint.item {
-        lookup::dex::open_itemdex()
-      } else {
-        unreachable!()
-      }
+      area,
+    } => match endpoint.get_mode() {
+      DexMode::Pokedex(name) => lookup::dex::open_pokedex(name, generation),
+      DexMode::Pokearth(name) => lookup::dex::open_pokearth(name, area, generation),
+      DexMode::Attackdex(_name) => lookup::dex::open_attackdex(),
+      DexMode::Abilitydex(_name) => lookup::dex::open_abilitydex(),
+      DexMode::Itemdex(_name) => lookup::dex::open_itemdex(),
     },
   };
 

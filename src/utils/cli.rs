@@ -313,6 +313,34 @@ pub struct Endpoints {
   pub item: Option<String>,
 }
 
+#[cfg(feature = "web")]
+impl Endpoints {
+  pub fn get_mode(&self) -> DexMode {
+    if let Some(name) = &self.pokemon {
+      DexMode::Pokedex(name.clone())
+    } else if let Some(name) = &self.region {
+      DexMode::Pokearth(name.clone())
+    } else if let Some(name) = &self.move_ {
+      DexMode::Attackdex(name.clone())
+    } else if let Some(name) = &self.ability {
+      DexMode::Abilitydex(name.clone())
+    } else if let Some(name) = &self.item {
+      DexMode::Itemdex(name.clone())
+    } else {
+      unreachable!()
+    }
+  }
+}
+
+#[cfg(feature = "web")]
+pub enum DexMode {
+  Pokedex(String),
+  Pokearth(String),
+  Attackdex(String),
+  Abilitydex(String),
+  Itemdex(String),
+}
+
 pub fn get_appname() -> String {
   String::from(Args::command().get_name())
 }
