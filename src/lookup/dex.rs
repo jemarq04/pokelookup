@@ -159,12 +159,30 @@ pub fn open_attackdex(move_: String, generation: Option<i64>) -> Result<Vec<Stri
   Ok(svec!["Opened page successfully."])
 }
 
-pub fn open_abilitydex() -> Result<Vec<String>, clap::Error> {
-  Ok(Vec::new())
+pub fn open_abilitydex(ability: String) -> Result<Vec<String>, clap::Error> {
+  let ability = ability.to_lowercase().replace(" ", "");
+  if let Err(_) = open::that(format!(
+    "https://www.serebii.net/abilitydex/{ability}.shtml"
+  )) {
+    return Err(cli::error(
+      ErrorKind::InvalidValue,
+      format!("couldn't open page for {ability}"),
+    ));
+  }
+
+  Ok(svec!["Opened page successfully."])
 }
 
-pub fn open_itemdex() -> Result<Vec<String>, clap::Error> {
-  Ok(Vec::new())
+pub fn open_itemdex(item: String) -> Result<Vec<String>, clap::Error> {
+  let item = item.to_lowercase().replace(" ", "");
+  if let Err(_) = open::that(format!("https://www.serebii.net/itemdex/{item}.shtml")) {
+    return Err(cli::error(
+      ErrorKind::InvalidValue,
+      format!("couldn't open page for {item}"),
+    ));
+  }
+
+  Ok(svec!["Opened page successfully."])
 }
 
 #[cfg(test)]

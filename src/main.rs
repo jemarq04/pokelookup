@@ -104,8 +104,8 @@ async fn main() {
       DexMode::Pokedex(name) => lookup::dex::open_pokedex(name, generation),
       DexMode::Pokearth(name) => lookup::dex::open_pokearth(name, area, generation),
       DexMode::Attackdex(name) => lookup::dex::open_attackdex(name, generation),
-      DexMode::Abilitydex(_name) => lookup::dex::open_abilitydex(),
-      DexMode::Itemdex(_name) => lookup::dex::open_itemdex(),
+      DexMode::Abilitydex(name) => lookup::dex::open_abilitydex(name),
+      DexMode::Itemdex(name) => lookup::dex::open_itemdex(name),
     },
   };
 
