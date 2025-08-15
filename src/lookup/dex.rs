@@ -124,25 +124,39 @@ pub fn open_pokearth(
 }
 
 pub fn open_attackdex(move_: String, generation: Option<i64>) -> Result<Vec<String>, clap::Error> {
+  fn get_genstr(num: i64) -> Result<String, clap::Error> {
+    match num {
+      1 => Ok(String::from("-rby")),
+      2 => Ok(String::from("-gs")),
+      3 => Ok(String::new()),
+      4 => Ok(String::from("-dp")),
+      5 => Ok(String::from("-bw")),
+      6 => Ok(String::from("-xy")),
+      7 => Ok(String::from("-sm")),
+      8 => Ok(String::from("-swsh")),
+      9 => Ok(String::from("-sv")),
+      _ => Err(cli::error(
+        ErrorKind::InvalidValue,
+        format!("invalid generation: {num}"),
+      )),
+    }
+  }
   let move_ = move_.to_lowercase().replace(" ", "");
   let genstr = match generation {
-    None | Some(_) => todo!(),
+    None | Some(LATEST_GEN) => get_genstr(LATEST_GEN)?,
+    Some(g) => get_genstr(g)?,
   };
-  /*
-  if [[ $gen -eq 1 ]]; then genstr="-rby"
-  elif [[ $gen -eq 2 ]]; then genstr="-gs"
-  elif [[ $gen -eq 4 ]]; then genstr="-dp"
-  elif [[ $gen -eq 5 ]]; then genstr="-bw"
-  elif [[ $gen -eq 6 ]]; then genstr="-xy"
-  elif [[ $gen -eq 7 ]]; then genstr="-sm"
-  elif [[ $gen -eq 8 ]]; then genstr="-swsh"
-  elif [[ $gen -eq 9 ]]; then genstr="-sv"
-  elif [[ $gen -ne 3 ]]; then bap_error "invalid generation"
-  fi
-  #open -a "Firefox" "https://www.serebii.net/attackdex$genstr/$move.shtml"
-  wslview "https://www.serebii.net/attackdex$genstr/$move.shtml"
-     */
-  Ok(Vec::new())
+
+  if let Err(_) = open::that(format!(
+    "https://www.serebii.net/attackdex{genstr}/{move_}.shtml"
+  )) {
+    return Err(cli::error(
+      ErrorKind::InvalidValue,
+      format!("couldn't open page for {move_}"),
+    ));
+  }
+
+  Ok(svec!["Opened page successfully."])
 }
 
 pub fn open_abilitydex() -> Result<Vec<String>, clap::Error> {
