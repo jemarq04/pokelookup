@@ -1,37 +1,24 @@
 use super::pokedex::Pokedex;
-use crate::svec;
 use crate::utils::cli;
 use clap::ValueEnum;
 use clap::error::ErrorKind;
 
 const LATEST_GEN: i64 = 9;
 
-pub fn open_pokedex(pokemon: String, generation: Option<i64>) -> Result<Vec<String>, clap::Error> {
+pub fn open_pokedex(pokemon: String, generation: Option<i64>) -> Result<String, clap::Error> {
   let pokemon = pokemon.to_lowercase().replace(" ", "");
-  match generation {
-    None | Some(0) => {
-      if let Err(_) = open::that(format!("https://www.serebii.net/pokemon/{pokemon}")) {
-        return Err(cli::error(
-          ErrorKind::InvalidValue,
-          format!("couldn't open page for {pokemon}"),
-        ));
-      }
-    },
+  let url = match generation {
+    None | Some(0) => format!("https://www.serebii.net/pokemon/{pokemon}"),
     Some(g) => match g {
       g @ 8..=LATEST_GEN => {
-        if let Err(_) = open::that(format!(
+        format!(
           "https://www.serebii.net/pokedex-{}/{pokemon}",
           match g {
             8 => "swsh",
             9 => "sv",
             _ => unreachable!(),
           }
-        )) {
-          return Err(cli::error(
-            ErrorKind::InvalidValue,
-            format!("couldn't open page for {pokemon}"),
-          ));
-        }
+        )
       },
       g @ 1..8 => {
         let num = match Pokedex::from_str(&pokemon, true) {
@@ -43,7 +30,7 @@ pub fn open_pokedex(pokemon: String, generation: Option<i64>) -> Result<Vec<Stri
             ));
           },
         };
-        if let Err(_) = open::that(format!(
+        format!(
           "https://www.serebii.net/pokedex{}/{num:0>3}.shtml",
           match g {
             1 => "",
@@ -55,12 +42,7 @@ pub fn open_pokedex(pokemon: String, generation: Option<i64>) -> Result<Vec<Stri
             7 => "-sm",
             _ => unreachable!(),
           },
-        )) {
-          return Err(cli::error(
-            ErrorKind::InvalidValue,
-            format!("couldn't open page for {pokemon}"),
-          ));
-        }
+        )
       },
       _ => {
         return Err(cli::error(
@@ -69,15 +51,16 @@ pub fn open_pokedex(pokemon: String, generation: Option<i64>) -> Result<Vec<Stri
         ));
       },
     },
-  }
-  Ok(svec!["Opened page successfully."])
+  };
+
+  Ok(url)
 }
 
 pub fn open_pokearth(
   region: String,
   area: Option<String>,
   generation: Option<i64>,
-) -> Result<Vec<String>, clap::Error> {
+) -> Result<String, clap::Error> {
   let region = region.to_lowercase();
   let area = match area {
     Some(x) => Some(x.to_lowercase().replace(" ", "")),
@@ -107,23 +90,10 @@ pub fn open_pokearth(
     );
   }
 
-  if let Err(_) = open::that(url) {
-    return Err(cli::error(
-      ErrorKind::InvalidValue,
-      format!(
-        "couldn't open page for {}",
-        match area {
-          Some(area) => area,
-          None => region,
-        },
-      ),
-    ));
-  }
-
-  Ok(svec!["Opened page successfully."])
+  Ok(url)
 }
 
-pub fn open_attackdex(move_: String, generation: Option<i64>) -> Result<Vec<String>, clap::Error> {
+pub fn open_attackdex(move_: String, generation: Option<i64>) -> Result<String, clap::Error> {
   fn get_genstr(num: i64) -> Result<String, clap::Error> {
     match num {
       1 => Ok(String::from("-rby")),
@@ -147,42 +117,21 @@ pub fn open_attackdex(move_: String, generation: Option<i64>) -> Result<Vec<Stri
     Some(g) => get_genstr(g)?,
   };
 
-  if let Err(_) = open::that(format!(
+  Ok(format!(
     "https://www.serebii.net/attackdex{genstr}/{move_}.shtml"
-  )) {
-    return Err(cli::error(
-      ErrorKind::InvalidValue,
-      format!("couldn't open page for {move_}"),
-    ));
-  }
-
-  Ok(svec!["Opened page successfully."])
+  ))
 }
 
-pub fn open_abilitydex(ability: String) -> Result<Vec<String>, clap::Error> {
+pub fn open_abilitydex(ability: String) -> Result<String, clap::Error> {
   let ability = ability.to_lowercase().replace(" ", "");
-  if let Err(_) = open::that(format!(
+  Ok(format!(
     "https://www.serebii.net/abilitydex/{ability}.shtml"
-  )) {
-    return Err(cli::error(
-      ErrorKind::InvalidValue,
-      format!("couldn't open page for {ability}"),
-    ));
-  }
-
-  Ok(svec!["Opened page successfully."])
+  ))
 }
 
-pub fn open_itemdex(item: String) -> Result<Vec<String>, clap::Error> {
+pub fn open_itemdex(item: String) -> Result<String, clap::Error> {
   let item = item.to_lowercase().replace(" ", "");
-  if let Err(_) = open::that(format!("https://www.serebii.net/itemdex/{item}.shtml")) {
-    return Err(cli::error(
-      ErrorKind::InvalidValue,
-      format!("couldn't open page for {item}"),
-    ));
-  }
-
-  Ok(svec!["Opened page successfully."])
+  Ok(format!("https://www.serebii.net/itemdex/{item}.shtml"))
 }
 
 #[cfg(test)]

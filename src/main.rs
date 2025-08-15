@@ -6,6 +6,10 @@ use rustemon::client::RustemonClient;
 use utils::cli::{Args, SubArgs};
 
 #[cfg(feature = "web")]
+use clap::error::ErrorKind;
+#[cfg(feature = "web")]
+use utils::cli;
+#[cfg(feature = "web")]
 use utils::cli::DexMode;
 
 #[tokio::main]
@@ -100,12 +104,24 @@ async fn main() {
       endpoint,
       generation,
       area,
-    } => match endpoint.get_mode() {
-      DexMode::Pokedex(name) => lookup::dex::open_pokedex(name, generation),
-      DexMode::Pokearth(name) => lookup::dex::open_pokearth(name, area, generation),
-      DexMode::Attackdex(name) => lookup::dex::open_attackdex(name, generation),
-      DexMode::Abilitydex(name) => lookup::dex::open_abilitydex(name),
-      DexMode::Itemdex(name) => lookup::dex::open_itemdex(name),
+    } => {
+      let url = match endpoint.get_mode() {
+        DexMode::Pokedex(name) => lookup::dex::open_pokedex(name, generation),
+        DexMode::Pokearth(name) => lookup::dex::open_pokearth(name, area, generation),
+        DexMode::Attackdex(name) => lookup::dex::open_attackdex(name, generation),
+        DexMode::Abilitydex(name) => lookup::dex::open_abilitydex(name),
+        DexMode::Itemdex(name) => lookup::dex::open_itemdex(name),
+      };
+      match url {
+        Ok(url) => match open::that(&url) {
+          Ok(_) => Ok(svec!["Opened page successfully."]),
+          Err(_) => Err(cli::error(
+            ErrorKind::InvalidValue,
+            format!("couldn't open URL: {url}"),
+          )),
+        },
+        Err(e) => Err(e),
+      }
     },
   };
 
