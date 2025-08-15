@@ -96,7 +96,7 @@ async fn main() {
       lang,
     } => lookup::print_matchups(&client, primary, secondary, list, fast, lang).await,
     #[cfg(feature = "web")]
-    SubArgs::DexCmd {
+    SubArgs::SearchCmd {
       endpoint,
       generation,
       area,

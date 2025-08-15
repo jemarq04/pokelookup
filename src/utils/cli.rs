@@ -278,8 +278,8 @@ pub enum SubArgs {
 
   /// Open web pages for a given endpoint. A valid endpoint includes pokemon, abilities, items, and more.
   #[cfg(feature = "web")]
-  #[command(name = "dex", long_about)]
-  DexCmd {
+  #[command(name = "search", long_about)]
+  SearchCmd {
     #[command(flatten)]
     endpoint: Endpoints,
 
