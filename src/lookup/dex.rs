@@ -123,7 +123,25 @@ pub fn open_pokearth(
   Ok(svec!["Opened page successfully."])
 }
 
-pub fn open_attackdex() -> Result<Vec<String>, clap::Error> {
+pub fn open_attackdex(move_: String, generation: Option<i64>) -> Result<Vec<String>, clap::Error> {
+  let move_ = move_.to_lowercase().replace(" ", "");
+  let genstr = match generation {
+    None | Some(_) => todo!(),
+  };
+  /*
+  if [[ $gen -eq 1 ]]; then genstr="-rby"
+  elif [[ $gen -eq 2 ]]; then genstr="-gs"
+  elif [[ $gen -eq 4 ]]; then genstr="-dp"
+  elif [[ $gen -eq 5 ]]; then genstr="-bw"
+  elif [[ $gen -eq 6 ]]; then genstr="-xy"
+  elif [[ $gen -eq 7 ]]; then genstr="-sm"
+  elif [[ $gen -eq 8 ]]; then genstr="-swsh"
+  elif [[ $gen -eq 9 ]]; then genstr="-sv"
+  elif [[ $gen -ne 3 ]]; then bap_error "invalid generation"
+  fi
+  #open -a "Firefox" "https://www.serebii.net/attackdex$genstr/$move.shtml"
+  wslview "https://www.serebii.net/attackdex$genstr/$move.shtml"
+     */
   Ok(Vec::new())
 }
 

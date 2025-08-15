@@ -103,7 +103,7 @@ async fn main() {
     } => match endpoint.get_mode() {
       DexMode::Pokedex(name) => lookup::dex::open_pokedex(name, generation),
       DexMode::Pokearth(name) => lookup::dex::open_pokearth(name, area, generation),
-      DexMode::Attackdex(_name) => lookup::dex::open_attackdex(),
+      DexMode::Attackdex(name) => lookup::dex::open_attackdex(name, generation),
       DexMode::Abilitydex(_name) => lookup::dex::open_abilitydex(),
       DexMode::Itemdex(_name) => lookup::dex::open_itemdex(),
     },
