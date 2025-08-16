@@ -275,6 +275,71 @@ pub enum SubArgs {
     )]
     lang: LanguageId,
   },
+
+  /// Open web pages for a given endpoint. A valid endpoint includes pokemon, abilities, items, and more.
+  #[cfg(feature = "web")]
+  #[command(name = "search", long_about)]
+  SearchCmd {
+    #[command(flatten)]
+    endpoint: Endpoints,
+
+    #[arg(short = 'A', long, help = "name of area within region")]
+    area: Option<String>,
+
+    #[arg(short, long = "gen", help = "optional name of generation to use")]
+    generation: Option<i64>,
+
+    #[arg(short, long, help = "suppress print statements")]
+    quiet: bool,
+  },
+}
+
+#[cfg(feature = "web")]
+#[derive(Debug, clap::Args)]
+#[group(required = true, multiple = false)]
+pub struct Endpoints {
+  #[arg(short, long, conflicts_with_all = ["area"], help = "name of pokemon")]
+  pub pokemon: Option<String>,
+
+  #[arg(short, long, help = "name of region")]
+  pub region: Option<String>,
+
+  #[arg(short, long, conflicts_with = "area", help = "name of move")]
+  pub move_: Option<String>,
+
+  #[arg(short, long, conflicts_with_all = ["area", "generation"], help = "name of ability")]
+  pub ability: Option<String>,
+
+  #[arg(short, long, conflicts_with_all = ["area", "generation"], help = "name of item")]
+  pub item: Option<String>,
+}
+
+#[cfg(feature = "web")]
+impl Endpoints {
+  pub fn get_mode(&self) -> DexMode {
+    if let Some(name) = &self.pokemon {
+      DexMode::Pokedex(name.clone())
+    } else if let Some(name) = &self.region {
+      DexMode::Pokearth(name.clone())
+    } else if let Some(name) = &self.move_ {
+      DexMode::Attackdex(name.clone())
+    } else if let Some(name) = &self.ability {
+      DexMode::Abilitydex(name.clone())
+    } else if let Some(name) = &self.item {
+      DexMode::Itemdex(name.clone())
+    } else {
+      unreachable!()
+    }
+  }
+}
+
+#[cfg(feature = "web")]
+pub enum DexMode {
+  Pokedex(String),
+  Pokearth(String),
+  Attackdex(String),
+  Abilitydex(String),
+  Itemdex(String),
 }
 
 pub fn get_appname() -> String {
