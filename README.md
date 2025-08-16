@@ -20,5 +20,13 @@ species for help finding the needed identifier.
 By default, `pokelookup` will create and use a cache for API requests using the `rustemon` crate in the user's home directory. The specific
 path is `~/.cache/pokelookup`. If you want to change that, use the `--cache-dir` option to specify the desired location.
 
+## Features
+
+By default, this package uses the `wrap_help` feature from [`clap`](https://crates.io/crates/clap) to wrap the help and usage printouts based on
+the terminal's current width. 
+
+Additionally, there is a `web` feature which can be enabled which adds an additional `pokelookup search` subcommand. This subcommand will open pages
+from [Serebii](https://www.serebii.net/) based on the query provided. To enable this, use `cargo install -F web` when installing the package.
+
 ## Contributing
 Contributions and feedback is welcome! Feel free to open a PR or add an issue in the Issues tab.
