@@ -8,11 +8,11 @@ const LATEST_GEN: i64 = 9;
 pub fn open_pokedex(pokemon: String, generation: Option<i64>) -> Result<String, clap::Error> {
   let pokemon = pokemon.to_lowercase().replace(" ", "");
   let url = match generation {
-    None | Some(0) => format!("https://www.serebii.net/pokemon/{pokemon}"),
+    None | Some(0) => format!("https://www.serebii.net/pokemon/{pokemon}/"),
     Some(g) => match g {
       g @ 8..=LATEST_GEN => {
         format!(
-          "https://www.serebii.net/pokedex-{}/{pokemon}",
+          "https://www.serebii.net/pokedex-{}/{pokemon}/",
           match g {
             8 => "swsh",
             9 => "sv",
@@ -137,4 +137,84 @@ pub fn open_itemdex(item: String) -> Result<String, clap::Error> {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::svec;
+
+  // Test each function with and without generation, trying to use names with upper-case and spaces
+  #[test]
+  fn test_pokedex() {
+    match open_pokedex(String::from("Iron Treads"), None) {
+      Ok(url) => assert_eq!(url, "https://www.serebii.net/pokemon/irontreads/"),
+      Err(e) => e.exit(),
+    }
+
+    let success = svec![
+      "https://www.serebii.net/pokedex-rs/025.shtml",
+      "https://www.serebii.net/pokedex-sv/pikachu/",
+    ];
+
+    for (idx, val) in success.iter().enumerate() {
+      match open_pokedex(String::from("Pikachu"), Some(6 * idx as i64 + 3)) {
+        Ok(url) => assert_eq!(url, *val),
+        Err(e) => e.exit(),
+      }
+    }
+  }
+
+  #[test]
+  fn test_pokearth() {
+    match open_pokearth(String::from("Sinnoh"), None, None) {
+      Ok(url) => assert_eq!(url, "https://www.serebii.net/pokearth/sinnoh/"),
+      Err(e) => e.exit(),
+    }
+
+    match open_pokearth(
+      String::from("Johto"),
+      Some(String::from("Olivine City")),
+      Some(2),
+    ) {
+      Ok(url) => assert_eq!(
+        url,
+        "https://www.serebii.net/pokearth/johto/2nd/olivinecity.shtml"
+      ),
+      Err(e) => e.exit(),
+    }
+  }
+
+  #[test]
+  fn test_attackdex() {
+    match open_attackdex(String::from("Thunder Wave"), None) {
+      Ok(url) => assert_eq!(
+        url,
+        "https://www.serebii.net/attackdex-sv/thunderwave.shtml"
+      ),
+      Err(e) => e.exit(),
+    }
+
+    match open_attackdex(String::from("Thunder Wave"), Some(5)) {
+      Ok(url) => assert_eq!(
+        url,
+        "https://www.serebii.net/attackdex-bw/thunderwave.shtml"
+      ),
+      Err(e) => e.exit(),
+    }
+  }
+
+  #[test]
+  fn test_abilitydex() {
+    match open_abilitydex(String::from("Tablets of Ruin")) {
+      Ok(url) => assert_eq!(
+        url,
+        "https://www.serebii.net/abilitydex/tabletsofruin.shtml"
+      ),
+      Err(e) => e.exit(),
+    }
+  }
+
+  #[test]
+  fn test_itemdex() {
+    match open_itemdex(String::from("Thunder Stone")) {
+      Ok(url) => assert_eq!(url, "https://www.serebii.net/itemdex/thunderstone.shtml"),
+      Err(e) => e.exit(),
+    }
+  }
 }
