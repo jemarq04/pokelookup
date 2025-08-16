@@ -1,7 +1,8 @@
-# pokelookup [![Latest Version]][crates.io] [![CI]][CI YAML]
+# pokelookup [![Latest Version]][crates.io] ![Repo Version] [![CI]][CI YAML]
 
 [Latest Version]: https://img.shields.io/crates/v/pokelookup.svg
 [crates.io]: https://crates.io/crates/pokelookup
+[Repo Version]: https://img.shields.io/badge/dynamic/toml?url=https%3A%2F%2Fraw.githubusercontent.com%2Fjemarq04%2Fpokelookup%2Frefs%2Fheads%2Fmain%2FCargo.toml&query=package.version&prefix=v&label=repo
 [CI]: https://github.com/jemarq04/pokelookup/actions/workflows/ci.yml/badge.svg
 [CI YAML]: https://github.com/jemarq04/pokelookup/actions/workflows/ci.yml
 
