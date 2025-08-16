@@ -288,6 +288,9 @@ pub enum SubArgs {
 
     #[arg(short, long = "gen", help = "optional name of generation to use")]
     generation: Option<i64>,
+
+    #[arg(short, long, help = "suppress print statements")]
+    quiet: bool,
   },
 }
 

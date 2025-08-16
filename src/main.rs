@@ -104,6 +104,7 @@ async fn main() {
       endpoint,
       generation,
       area,
+      quiet,
     } => {
       let url = match endpoint.get_mode() {
         DexMode::Pokedex(name) => lookup::dex::open_pokedex(name, generation),
@@ -114,7 +115,12 @@ async fn main() {
       };
       match url {
         Ok(url) => match open::that(&url) {
-          Ok(_) => Ok(svec!["Opened page successfully."]),
+          Ok(_) => {
+            if quiet {
+              return;
+            }
+            Ok(svec!["Opened page successfully."])
+          },
           Err(_) => Err(cli::error(
             ErrorKind::InvalidValue,
             format!("couldn't open URL: {url}"),
