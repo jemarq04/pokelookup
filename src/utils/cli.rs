@@ -298,19 +298,25 @@ pub enum SubArgs {
 #[derive(Debug, clap::Args)]
 #[group(required = true, multiple = false)]
 pub struct Endpoints {
-  #[arg(short, long, conflicts_with_all = ["area"], help = "name of pokemon")]
+  #[arg(short, long, help_heading = "Endpoints", conflicts_with_all = ["area"], help = "name of pokemon")]
   pub pokemon: Option<String>,
 
-  #[arg(short, long, help = "name of region")]
+  #[arg(short, long, help_heading = "Endpoints", help = "name of region")]
   pub region: Option<String>,
 
-  #[arg(short, long, conflicts_with = "area", help = "name of move")]
+  #[arg(
+    short,
+    long,
+    help_heading = "Endpoints",
+    conflicts_with = "area",
+    help = "name of move"
+  )]
   pub move_: Option<String>,
 
-  #[arg(short, long, conflicts_with_all = ["area", "generation"], help = "name of ability")]
+  #[arg(short, long, help_heading = "Endpoints", conflicts_with_all = ["area", "generation"], help = "name of ability")]
   pub ability: Option<String>,
 
-  #[arg(short, long, conflicts_with_all = ["area", "generation"], help = "name of item")]
+  #[arg(short, long, help_heading = "Endpoints", conflicts_with_all = ["area", "generation"], help = "name of item")]
   pub item: Option<String>,
 }
 
