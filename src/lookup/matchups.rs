@@ -328,7 +328,7 @@ mod tests {
 
     match print_matchups(&client, primary, secondary, list, fast, lang).await {
       Ok(res) => assert_eq!(res, success),
-      Err(err) => err.exit(),
+      Err(err) => panic!("{}", err.render()),
     }
   }
 
@@ -353,7 +353,7 @@ mod tests {
 
     match print_matchups(&client, primary, secondary, list, fast, lang).await {
       Ok(res) => assert_eq!(res, success),
-      Err(err) => err.exit(),
+      Err(err) => panic!("{}", err.render()),
     }
   }
 
@@ -375,7 +375,7 @@ mod tests {
 
     match print_matchups(&client, primary, secondary, list, fast, lang).await {
       Ok(res) => assert_eq!(res, success),
-      Err(err) => err.exit(),
+      Err(err) => panic!("{}", err.render()),
     }
   }
 }

@@ -65,7 +65,7 @@ mod tests {
             ]
           );
         },
-        Err(err) => err.exit(),
+        Err(err) => panic!("{}", err.render()),
       }
     }
   }

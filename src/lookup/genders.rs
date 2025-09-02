@@ -64,7 +64,7 @@ mod tests {
             " F:  50.0%",
           ]
         ),
-        Err(err) => err.exit(),
+        Err(err) => panic!("{}", err.render()),
       }
     }
   }

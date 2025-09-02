@@ -117,7 +117,7 @@ mod tests {
             success.clone()
           }
         ),
-        Err(err) => err.exit(),
+        Err(err) => panic!("{}", err.render()),
       }
     }
   }
@@ -138,7 +138,7 @@ mod tests {
 
     match print_abilities(&client, &pokemon, fast, lang, recursive).await {
       Ok(s) => assert_eq!(s, success),
-      Err(err) => err.exit(),
+      Err(err) => panic!("{}", err.render()),
     }
   }
 }

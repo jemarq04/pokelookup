@@ -127,7 +127,7 @@ mod tests {
 
       match print_encounters(&client, version, &pokemon, fast, lang, recursive).await {
         Ok(res) => assert_eq!(res, vals),
-        Err(err) => err.exit(),
+        Err(err) => panic!("{}", err.render()),
       }
     }
   }
@@ -172,7 +172,7 @@ mod tests {
 
     match print_encounters(&client, version, &pokemon, fast, lang, recursive).await {
       Ok(res) => assert_eq!(res, success),
-      Err(err) => err.exit(),
+      Err(err) => panic!("{}", err.render()),
     }
   }
 }

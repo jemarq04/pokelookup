@@ -118,7 +118,7 @@ mod tests {
 
       match print_moves(&client, &pokemon, fast, lang, vgroup, level).await {
         Ok(res) => assert_eq!(res, vals),
-        Err(err) => err.exit(),
+        Err(err) => panic!("{}", err.render()),
       }
     }
   }
@@ -140,7 +140,7 @@ mod tests {
 
     match print_moves(&client, &pokemon, fast, lang, vgroup, level).await {
       Ok(res) => assert_eq!(res, success),
-      Err(err) => err.exit(),
+      Err(err) => panic!("{}", err.render()),
     }
   }
 }

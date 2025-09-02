@@ -91,7 +91,7 @@ mod tests {
 
       match print_eggs(&client, &pokemon, fast, lang).await {
         Ok(res) => assert_eq!(res, vals),
-        Err(err) => err.exit(),
+        Err(err) => panic!("{}", err.render()),
       }
     }
   }

@@ -144,7 +144,7 @@ mod tests {
   fn test_pokedex() {
     match open_pokedex(String::from("Iron Treads"), None) {
       Ok(url) => assert_eq!(url, "https://www.serebii.net/pokemon/irontreads/"),
-      Err(e) => e.exit(),
+      Err(err) => panic!("{}", err.render()),
     }
 
     let success = svec![
@@ -155,7 +155,7 @@ mod tests {
     for (idx, val) in success.iter().enumerate() {
       match open_pokedex(String::from("Pikachu"), Some(6 * idx as i64 + 3)) {
         Ok(url) => assert_eq!(url, *val),
-        Err(e) => e.exit(),
+        Err(err) => panic!("{}", err.render()),
       }
     }
   }
@@ -164,7 +164,7 @@ mod tests {
   fn test_pokearth() {
     match open_pokearth(String::from("Sinnoh"), None, None) {
       Ok(url) => assert_eq!(url, "https://www.serebii.net/pokearth/sinnoh/"),
-      Err(e) => e.exit(),
+      Err(err) => panic!("{}", err.render()),
     }
 
     match open_pokearth(
@@ -176,7 +176,7 @@ mod tests {
         url,
         "https://www.serebii.net/pokearth/johto/2nd/olivinecity.shtml"
       ),
-      Err(e) => e.exit(),
+      Err(err) => panic!("{}", err.render()),
     }
   }
 
@@ -187,7 +187,7 @@ mod tests {
         url,
         "https://www.serebii.net/attackdex-sv/thunderwave.shtml"
       ),
-      Err(e) => e.exit(),
+      Err(err) => panic!("{}", err.render()),
     }
 
     match open_attackdex(String::from("Thunder Wave"), Some(5)) {
@@ -195,7 +195,7 @@ mod tests {
         url,
         "https://www.serebii.net/attackdex-bw/thunderwave.shtml"
       ),
-      Err(e) => e.exit(),
+      Err(err) => panic!("{}", err.render()),
     }
   }
 
@@ -206,7 +206,7 @@ mod tests {
         url,
         "https://www.serebii.net/abilitydex/tabletsofruin.shtml"
       ),
-      Err(e) => e.exit(),
+      Err(err) => panic!("{}", err.render()),
     }
   }
 
@@ -214,7 +214,7 @@ mod tests {
   fn test_itemdex() {
     match open_itemdex(String::from("Thunder Stone")) {
       Ok(url) => assert_eq!(url, "https://www.serebii.net/itemdex/thunderstone.shtml"),
-      Err(e) => e.exit(),
+      Err(err) => panic!("{}", err.render()),
     }
   }
 }
