@@ -149,6 +149,18 @@ pub async fn get_evolution_details(
     ));
   }
 
+  // Check held item
+  if let Some(resource) = &details.held_item {
+    result.push(format!(
+      "held_item: {}",
+      if !fast {
+        get_name!(follow resource, client, lang)
+      } else {
+        resource.name.clone()
+      },
+    ));
+  }
+
   // Check gender
   if let Some(gender) = &details.gender {
     result.push(format!("gender: {gender}"))
