@@ -1,5 +1,6 @@
 use crate::get_name;
-use crate::utils::cli::{self, LanguageId, Type};
+use crate::utils::cli;
+use crate::utils::enums::{LanguageId, Type};
 use clap::error::ErrorKind;
 use itertools::izip;
 use rustemon::Follow;

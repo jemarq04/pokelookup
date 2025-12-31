@@ -1,4 +1,5 @@
 pub mod cli;
+pub mod enums;
 pub mod helpers;
 
 #[macro_export]
