@@ -393,11 +393,11 @@ mod tests {
     let client = RustemonClient::default();
 
     let success = vec![
-      "Qwilfish",
-      "Qwilfish -> strong-style-move (known_move: Barb Barrage) -> Overqwil",
+      "Farfetch’d",
+      "Farfetch’d -> Land three critical hits in a battle -> Sirfetch’d",
     ];
 
-    let pokemon = String::from("Qwilfish");
+    let pokemon = String::from("Farfetchd");
     let fast = false;
     let lang = LanguageId::En;
     let secret = false;
