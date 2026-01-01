@@ -10,13 +10,12 @@ pub enum VersionGroup {
   RubySapphire,
   Emerald,
   FireredLeafgreen,
-  Colusseum,
-  #[value(alias = "xd")]
-  XD,
   DiamondPearl,
   Platinum,
   HeartgoldSoulsilver,
   BlackWhite,
+  Colosseum,
+  Xd,
   Black2White2,
   XY,
   OmegaRubyAlphaSapphire,
@@ -26,13 +25,14 @@ pub enum VersionGroup {
   SwordShield,
   TheIsleOfArmor,
   TheCrownTundra,
-  BrilliantDiamondShiningPearl,
+  BrilliantDiamondAndShiningPearl,
   LegendsArceus,
   ScarletViolet,
   TheTealMask,
   TheIndigoDisk,
-  #[value(alias = "legends-za")]
-  LegendsZA,
+  RedGreenJapan,
+  BlueJapan,
+  LegendsZa,
   MegaDimension,
 }
 impl_Display!(VersionGroup);
@@ -58,8 +58,7 @@ pub enum Version {
   Black,
   White,
   Colosseum,
-  #[value(alias = "xd")]
-  XD,
+  Xd,
   Black2,
   White2,
   X,
@@ -83,8 +82,10 @@ pub enum Version {
   Violet,
   TheTealMask,
   TheIndigoDisk,
-  #[value(alias = "legends-za")]
-  LegendsZA,
+  RedJapan,
+  GreenJapan,
+  BlueJapan,
+  LegendsZa,
   MegaDimension,
 }
 impl_Display!(Version);
