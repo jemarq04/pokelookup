@@ -1,5 +1,6 @@
 use crate::get_name;
-use crate::utils::cli::{self, LanguageId};
+use crate::utils::cli;
+use crate::utils::enums::LanguageId;
 use crate::utils::helpers;
 use clap::error::ErrorKind;
 use futures::future;

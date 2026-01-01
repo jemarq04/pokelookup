@@ -1,4 +1,5 @@
-use crate::utils::cli::{self, LanguageId};
+use crate::utils::cli;
+use crate::utils::enums::LanguageId;
 use crate::utils::helpers;
 use crate::{get_name, svec};
 use clap::error::ErrorKind;
