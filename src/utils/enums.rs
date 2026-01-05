@@ -25,7 +25,7 @@ pub enum VersionGroup {
   SwordShield,
   TheIsleOfArmor,
   TheCrownTundra,
-  BrilliantDiamondAndShiningPearl,
+  BrilliantDiamondShiningPearl,
   LegendsArceus,
   ScarletViolet,
   TheTealMask,
