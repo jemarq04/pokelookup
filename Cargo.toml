@@ -2,7 +2,7 @@
 name = "pokelookup"
 description = "Look up pokemon details through PokeAPI."
 authors = ["Justin Marquez"]
-version = "1.3.3"
+version = "1.3.4"
 edition = "2024"
 readme = "README.md"
 license = "MIT"
