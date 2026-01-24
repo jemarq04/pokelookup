@@ -190,6 +190,18 @@ pub async fn get_evolution_details(
     ));
   }
 
+  // Check used move
+  if let Some(resource) = &details.used_move {
+    result.push(format!(
+      "used_move: {}",
+      if !fast {
+        get_name!(follow resource, client, lang)
+      } else {
+        resource.name.clone()
+      },
+    ));
+  }
+
   // Check location
   if let Some(resource) = &details.location {
     result.push(format!(
@@ -220,6 +232,11 @@ pub async fn get_evolution_details(
   // Check minimum affection
   if let Some(val) = &details.min_affection {
     result.push(format!("min_affection: {val}"));
+  }
+
+  // Check multiplayer requirement
+  if details.needs_multiplayer {
+    result.push(String::from("needs_multiplayer"));
   }
 
   // Check overworld rain
@@ -276,6 +293,21 @@ pub async fn get_evolution_details(
   // Check upside-down
   if details.turn_upside_down {
     result.push(String::from("turn_upside_down"));
+  }
+
+  // Check minimum move count
+  if let Some(val) = &details.min_move_count {
+    result.push(format!("min_move_count: {val}"));
+  }
+
+  // Check minimum steps taken
+  if let Some(val) = &details.min_steps {
+    result.push(format!("min_steps: {val}"));
+  }
+
+  // Check minimum damage taken
+  if let Some(val) = &details.min_damage_taken {
+    result.push(format!("min_damage_taken: {val}"));
   }
 
   if result.len() == 0 {
