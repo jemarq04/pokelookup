@@ -138,6 +138,23 @@ pub fn open_itemdex(item: String) -> Result<String, clap::Error> {
 mod tests {
   use super::*;
   use crate::svec;
+  use rustemon::{Follow, client::RustemonClient};
+
+  #[tokio::test]
+  async fn test_latest_generation() {
+    let client = RustemonClient::default();
+
+    let mut all_generations = rustemon::games::generation::get_all_entries(&client)
+      .await
+      .unwrap();
+    match all_generations.pop() {
+      Some(generation_resource) => {
+        let generation = generation_resource.follow(&client).await.unwrap();
+        assert_eq!(generation.id, LATEST_GEN)
+      },
+      None => panic!("Could not retrieve generation resources"),
+    };
+  }
 
   // Test each function with and without generation, trying to use names with upper-case and spaces
   #[test]
