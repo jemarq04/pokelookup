@@ -3,7 +3,7 @@ mod utils;
 
 use clap::Parser;
 use rustemon::client::RustemonClient;
-use utils::cli::{Args, SubArgs};
+use utils::cli::{Args, SubArgs, get_appname};
 
 #[cfg(feature = "web")]
 use clap::error::ErrorKind;
@@ -19,7 +19,7 @@ async fn main() {
   // Create cache directory for API calls
   if let None = args.cache_dir {
     args.cache_dir = match std::env::home_dir() {
-      Some(path) => Some(format!("{}/.cache/pokelookup", path.display()).into()),
+      Some(path) => Some(format!("{}/.cache/{}", path.display(), get_appname()).into()),
       None => None,
     }
   }
