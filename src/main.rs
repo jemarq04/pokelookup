@@ -3,6 +3,7 @@ mod utils;
 
 use clap::Parser;
 use rustemon::client::RustemonClient;
+use std::{fs::create_dir, path::Path};
 use utils::cli::{Args, SubArgs, get_appname};
 
 #[cfg(feature = "web")]
@@ -19,7 +20,20 @@ async fn main() {
   // Create cache directory for API calls
   if let None = args.cache_dir {
     args.cache_dir = match std::env::home_dir() {
-      Some(path) => Some(format!("{}/.cache/{}", path.display(), get_appname()).into()),
+      Some(home) => {
+        let dirpath = format!("{}/.cache", home.display());
+        let dirpath = Path::new(&dirpath);
+        let cache_dir = format!("{}/{}", dirpath.display(), get_appname());
+        if !dirpath.exists() {
+          if let Err(_) = create_dir(&dirpath) {
+            None
+          } else {
+            Some(cache_dir.into())
+          }
+        } else {
+          Some(cache_dir.into())
+        }
+      },
       None => None,
     }
   }
