@@ -9,51 +9,36 @@ use utils::cli::{Args, SubArgs, get_appname};
 #[cfg(feature = "web")]
 use clap::error::ErrorKind;
 #[cfg(feature = "web")]
-use utils::cli;
-#[cfg(feature = "web")]
-use utils::cli::DexMode;
+use utils::{cli, cli::DexMode};
 
 #[tokio::main]
 async fn main() {
   let mut args = Args::parse();
 
   // Create cache directory for API calls
-  if let None = args.cache_dir {
-    args.cache_dir = match std::env::home_dir() {
-      Some(home) => {
+  args.cache_dir = match args.cache_dir {
+    Some(p) => Some(p),
+    None => {
+      let mut result = None;
+      if let Some(home) = std::env::home_dir() {
         let dirpath = format!("{}/.cache", home.display());
         let dirpath = Path::new(&dirpath);
-        let cache_dir = format!("{}/{}", dirpath.display(), get_appname());
-        if !dirpath.exists() {
-          if let Err(_) = create_dir(&dirpath) {
-            None
-          } else {
-            Some(cache_dir.into())
-          }
-        } else {
-          Some(cache_dir.into())
+        if dirpath.exists() || matches!(create_dir(dirpath), Ok(_)) {
+          result = Some(format!("{}/{}", dirpath.display(), get_appname()).into());
         }
-      },
-      None => None,
-    }
-  }
-  let client = match args.cache_dir {
-    Some(path) => {
-      match rustemon::client::RustemonClientBuilder::default()
-        .with_manager(rustemon::client::CACacheManager::new(path, false))
-        .try_build()
-      {
-        Ok(cl) => cl,
-        Err(_) => {
-          eprintln!("warning: cache directory set to cache manager default");
-          RustemonClient::default()
-        },
       }
+      result
     },
-    None => {
-      eprintln!("warning: cache directory set to cache manager default");
-      RustemonClient::default()
-    },
+  };
+  let client = if let Some(path) = args.cache_dir
+    && let Ok(client) = rustemon::client::RustemonClientBuilder::default()
+      .with_manager(rustemon::client::CACacheManager::new(path, false))
+      .try_build()
+  {
+    client
+  } else {
+    eprintln!("warning: cache directory set to cache manager default");
+    RustemonClient::default()
   };
 
   // Call the appropriate subcommand for results
