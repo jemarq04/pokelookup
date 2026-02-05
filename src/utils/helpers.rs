@@ -53,40 +53,37 @@ pub async fn get_pokemon_from_chain(
         Ok(x) => x.chain,
         Err(_) => return Err(()),
       };
-      if let Ok(x) = pokemon_species::get_by_name(&chain.species.name, client).await {
-        if let Ok(y) = future::try_join_all(
+      if let Ok(x) = pokemon_species::get_by_name(&chain.species.name, client).await
+        && let Ok(y) = future::try_join_all(
           x.varieties
             .iter()
             .map(async |v| v.pokemon.follow(client).await),
         )
         .await
-        {
-          y.into_iter().for_each(|mon| result.push(mon));
-        }
+      {
+        y.into_iter().for_each(|mon| result.push(mon));
       }
       for evo1 in chain.evolves_to.iter() {
-        if let Ok(x) = pokemon_species::get_by_name(&evo1.species.name, client).await {
-          if let Ok(y) = future::try_join_all(
+        if let Ok(x) = pokemon_species::get_by_name(&evo1.species.name, client).await
+          && let Ok(y) = future::try_join_all(
             x.varieties
               .iter()
               .map(async |v| v.pokemon.follow(client).await),
           )
           .await
-          {
-            y.into_iter().for_each(|mon| result.push(mon));
-          }
+        {
+          y.into_iter().for_each(|mon| result.push(mon));
         }
         for evo2 in evo1.evolves_to.iter() {
-          if let Ok(x) = pokemon_species::get_by_name(&evo2.species.name, client).await {
-            if let Ok(y) = future::try_join_all(
+          if let Ok(x) = pokemon_species::get_by_name(&evo2.species.name, client).await
+            && let Ok(y) = future::try_join_all(
               x.varieties
                 .iter()
                 .map(async |v| v.pokemon.follow(client).await),
             )
             .await
-            {
-              y.into_iter().for_each(|mon| result.push(mon));
-            }
+          {
+            y.into_iter().for_each(|mon| result.push(mon));
           }
         }
       }
