@@ -16,7 +16,7 @@ pub async fn print_matchups(
   lang: LanguageId,
 ) -> Result<Vec<String>, clap::Error> {
   // Get type resources
-  let primary = match type_::get_by_name(&primary.to_string(), &client).await {
+  let primary = match type_::get_by_name(&primary.to_string(), client).await {
     Ok(x) => x,
     Err(_) => {
       return Err(cli::error(
@@ -26,7 +26,7 @@ pub async fn print_matchups(
     },
   };
   let secondary = match secondary {
-    Some(t) => match type_::get_by_name(&t.to_string(), &client).await {
+    Some(t) => match type_::get_by_name(&t.to_string(), client).await {
       Ok(x) => Some(x),
       Err(_) => {
         return Err(cli::error(
@@ -79,7 +79,7 @@ pub async fn print_matchups(
       } else if let Some(idx) = double_damage_from.iter().position(|x| *x == name) {
         double_damage_from.remove(idx);
         no_damage_from.push(name.clone());
-      } else if let None = no_damage_from.iter().position(|x| *x == name) {
+      } else if !no_damage_from.contains(&name) {
         no_damage_from.push(name.clone());
       }
     }
@@ -94,7 +94,7 @@ pub async fn print_matchups(
         half_damage_from.remove(idx);
       } else if let Some(idx) = double_damage_from.iter().position(|x| *x == name) {
         double_damage_from.remove(idx);
-      } else if let None = no_damage_from.iter().position(|x| *x == name) {
+      } else if !no_damage_from.contains(&name) {
         half_damage_from.push(name.clone());
       }
     }
@@ -109,7 +109,7 @@ pub async fn print_matchups(
       } else if let Some(idx) = double_damage_from.iter().position(|x| *x == name) {
         quad_damage_from.push(name.clone());
         double_damage_from.remove(idx);
-      } else if let None = no_damage_from.iter().position(|x| *x == name) {
+      } else if !no_damage_from.contains(&name) {
         double_damage_from.push(name.clone());
       }
     }
@@ -148,10 +148,7 @@ pub async fn print_matchups(
         for (no_dmg, half_dmg, double_dmg) in
           izip!(&no_damage_from, &half_damage_from, &double_damage_from)
         {
-          result.push(format!(
-            "{:<12} {:<12} {:<12}",
-            no_dmg, half_dmg, double_dmg
-          ));
+          result.push(format!("{no_dmg:<12} {half_dmg:<12} {double_dmg:<12}"));
         }
       } else {
         result.push(format!(
@@ -170,7 +167,7 @@ pub async fn print_matchups(
             if no_dmg.is_empty() {
               break;
             }
-            result.push(format!("   * {}", no_dmg));
+            result.push(format!("   * {no_dmg}"));
           }
         }
         if half_damage_from.iter().filter(|x| !x.is_empty()).count() != 0 {
@@ -183,7 +180,7 @@ pub async fn print_matchups(
             if half_dmg.is_empty() {
               break;
             }
-            result.push(format!("   * {}", half_dmg));
+            result.push(format!("   * {half_dmg}"));
           }
         }
         if double_damage_from.iter().filter(|x| !x.is_empty()).count() != 0 {
@@ -195,7 +192,7 @@ pub async fn print_matchups(
             if double_dmg.is_empty() {
               break;
             }
-            result.push(format!("   * {}", double_dmg));
+            result.push(format!("   * {double_dmg}"));
           }
         }
       }
@@ -215,14 +212,13 @@ pub async fn print_matchups(
           &quad_damage_from
         ) {
           result.push(format!(
-            "{:<12} {:<12} {:<12} {:<12} {:<12}",
-            no_dmg, quarter_dmg, half_dmg, double_dmg, quad_dmg
+            "{no_dmg:<12} {quarter_dmg:<12} {half_dmg:<12} {double_dmg:<12} {quad_dmg:<12}"
           ));
         }
       } else {
         result.push(format!(
           "{}:",
-          vec![
+          [
             if !fast {
               get_name!(primary, client, lang.to_string())
             } else {
@@ -232,7 +228,7 @@ pub async fn print_matchups(
               get_name!(second, client, lang.to_string())
             } else {
               second.name.clone()
-            },
+            }
           ]
           .join("/"),
         ));
@@ -244,7 +240,7 @@ pub async fn print_matchups(
             if no_dmg.is_empty() {
               break;
             }
-            result.push(format!("   * {}", no_dmg));
+            result.push(format!("   * {no_dmg}"));
           }
         }
         if quarter_damage_from.iter().filter(|x| !x.is_empty()).count() != 0 {
@@ -257,7 +253,7 @@ pub async fn print_matchups(
             if quarter_dmg.is_empty() {
               break;
             }
-            result.push(format!("   * {}", quarter_dmg));
+            result.push(format!("   * {quarter_dmg}"));
           }
         }
         if half_damage_from.iter().filter(|x| !x.is_empty()).count() != 0 {
@@ -270,7 +266,7 @@ pub async fn print_matchups(
             if half_dmg.is_empty() {
               break;
             }
-            result.push(format!("   * {}", half_dmg));
+            result.push(format!("   * {half_dmg}"));
           }
         }
         if double_damage_from.iter().filter(|x| !x.is_empty()).count() != 0 {
@@ -283,7 +279,7 @@ pub async fn print_matchups(
             if double_dmg.is_empty() {
               break;
             }
-            result.push(format!("   * {}", double_dmg));
+            result.push(format!("   * {double_dmg}"));
           }
         }
         if quad_damage_from.iter().filter(|x| !x.is_empty()).count() != 0 {
@@ -295,7 +291,7 @@ pub async fn print_matchups(
             if quad_dmg.is_empty() {
               break;
             }
-            result.push(format!("   * {}", quad_dmg));
+            result.push(format!("   * {quad_dmg}"));
           }
         }
       }

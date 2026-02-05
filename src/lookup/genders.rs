@@ -13,7 +13,7 @@ pub async fn print_genders(
   lang: LanguageId,
 ) -> Result<Vec<String>, clap::Error> {
   // Create pokemon species resource
-  let species = match pokemon_species::get_by_name(&pokemon.replace(" ", "-"), &client).await {
+  let species = match pokemon_species::get_by_name(&pokemon.replace(" ", "-"), client).await {
     Ok(x) => x,
     Err(_) => {
       return Err(cli::error(
@@ -35,10 +35,10 @@ pub async fn print_genders(
   ));
   let rate = species.gender_rate as f64 / 8.0 * 100.0;
   if rate < 0.0 {
-    result.push(format!(" Genderless"));
+    result.push(" Genderless".to_string());
   } else {
     result.push(format!(" M: {:>5.1}%", 100.0 - rate));
-    result.push(format!(" F: {:>5.1}%", rate));
+    result.push(format!(" F: {rate:>5.1}%"));
   }
 
   Ok(result)

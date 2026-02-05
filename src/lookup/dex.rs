@@ -62,10 +62,7 @@ pub fn open_pokearth(
   generation: Option<i64>,
 ) -> Result<String, clap::Error> {
   let region = region.to_lowercase();
-  let area = match area {
-    Some(x) => Some(x.to_lowercase().replace(" ", "")),
-    None => None,
-  };
+  let area = area.map(|x| x.to_lowercase().replace(" ", ""));
 
   let mut url = format!("https://www.serebii.net/pokearth/{region}/");
   if let Some(area) = &area {

@@ -14,7 +14,7 @@ pub async fn print_eggs(
   lang: LanguageId,
 ) -> Result<Vec<String>, clap::Error> {
   // Create pokemon species resource
-  let species = match pokemon_species::get_by_name(&pokemon.replace(" ", "-"), &client).await {
+  let species = match pokemon_species::get_by_name(&pokemon.replace(" ", "-"), client).await {
     Ok(x) => x,
     Err(_) => {
       return Err(cli::error(
@@ -29,7 +29,7 @@ pub async fn print_eggs(
     species
       .egg_groups
       .iter()
-      .map(async |g| g.follow(&client).await),
+      .map(async |g| g.follow(client).await),
   )
   .await
   {

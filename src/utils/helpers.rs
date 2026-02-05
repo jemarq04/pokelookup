@@ -10,17 +10,17 @@ pub async fn get_pokemon_name(
   lang: &str,
 ) -> String {
   let forms =
-    match future::try_join_all(pokemon.forms.iter().map(async |f| f.follow(&client).await)).await {
+    match future::try_join_all(pokemon.forms.iter().map(async |f| f.follow(client).await)).await {
       Ok(x) => x,
       Err(_) => return pokemon.name.clone(),
     };
 
   for form in forms.into_iter() {
-    if !form.is_default || form.names.len() == 0 {
+    if !form.is_default || form.names.is_empty() {
       continue;
     }
     for n in form.names.iter() {
-      if let Ok(item) = n.language.follow(&client).await
+      if let Ok(item) = n.language.follow(client).await
         && item.name == lang
       {
         return n.name.clone();
@@ -38,26 +38,26 @@ pub async fn get_pokemon_from_chain(
   recursive: bool,
 ) -> Result<Vec<rustemon::model::pokemon::Pokemon>, ()> {
   let mut result = Vec::new();
-  let pokemon = match pokemon::get_by_name(pokemon, &client).await {
+  let pokemon = match pokemon::get_by_name(pokemon, client).await {
     Ok(x) => x,
     Err(_) => return Err(()),
   };
 
   if recursive {
-    let species = match pokemon.species.follow(&client).await {
+    let species = match pokemon.species.follow(client).await {
       Ok(x) => x,
       Err(_) => return Err(()),
     };
     if let Some(chain) = species.evolution_chain {
-      let chain = match chain.follow(&client).await {
+      let chain = match chain.follow(client).await {
         Ok(x) => x.chain,
         Err(_) => return Err(()),
       };
-      if let Ok(x) = pokemon_species::get_by_name(&chain.species.name, &client).await {
+      if let Ok(x) = pokemon_species::get_by_name(&chain.species.name, client).await {
         if let Ok(y) = future::try_join_all(
           x.varieties
             .iter()
-            .map(async |v| v.pokemon.follow(&client).await),
+            .map(async |v| v.pokemon.follow(client).await),
         )
         .await
         {
@@ -65,11 +65,11 @@ pub async fn get_pokemon_from_chain(
         }
       }
       for evo1 in chain.evolves_to.iter() {
-        if let Ok(x) = pokemon_species::get_by_name(&evo1.species.name, &client).await {
+        if let Ok(x) = pokemon_species::get_by_name(&evo1.species.name, client).await {
           if let Ok(y) = future::try_join_all(
             x.varieties
               .iter()
-              .map(async |v| v.pokemon.follow(&client).await),
+              .map(async |v| v.pokemon.follow(client).await),
           )
           .await
           {
@@ -77,11 +77,11 @@ pub async fn get_pokemon_from_chain(
           }
         }
         for evo2 in evo1.evolves_to.iter() {
-          if let Ok(x) = pokemon_species::get_by_name(&evo2.species.name, &client).await {
+          if let Ok(x) = pokemon_species::get_by_name(&evo2.species.name, client).await {
             if let Ok(y) = future::try_join_all(
               x.varieties
                 .iter()
-                .map(async |v| v.pokemon.follow(&client).await),
+                .map(async |v| v.pokemon.follow(client).await),
             )
             .await
             {
@@ -274,7 +274,7 @@ pub async fn get_evolution_details(
   }
 
   // Check time of day
-  if details.time_of_day.len() != 0 {
+  if !details.time_of_day.is_empty() {
     result.push(format!("time_of_day: {}", details.time_of_day));
   }
 
@@ -310,7 +310,7 @@ pub async fn get_evolution_details(
     result.push(format!("min_damage_taken: {val}"));
   }
 
-  if result.len() == 0 {
+  if result.is_empty() {
     None
   } else {
     Some(result.join(", "))
