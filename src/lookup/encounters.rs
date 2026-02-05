@@ -15,7 +15,7 @@ pub async fn print_encounters(
   recursive: bool,
 ) -> Result<Vec<String>, clap::Error> {
   // Create pokemon resources
-  let resources = match helpers::get_pokemon_from_chain(&client, &pokemon, recursive).await {
+  let resources = match helpers::get_pokemon_from_chain(client, pokemon, recursive).await {
     Ok(x) => x,
     Err(_) => {
       let valid = cli::VALID;
@@ -34,7 +34,7 @@ pub async fn print_encounters(
   let mut result = Vec::new();
   for mon_resource in resources.iter() {
     // Get encounter resources
-    let encounters = match helpers::follow_encounters(&mon_resource) {
+    let encounters = match helpers::follow_encounters(mon_resource) {
       Ok(x) => x,
       Err(_) => {
         return Err(cli::error(
@@ -63,7 +63,7 @@ pub async fn print_encounters(
     }
 
     // Do not return empty entries
-    if encounter_names.len() == 0 {
+    if encounter_names.is_empty() {
       continue;
     }
 
@@ -71,7 +71,7 @@ pub async fn print_encounters(
     result.push(format!(
       "{}:",
       if !fast {
-        helpers::get_pokemon_name(&client, &mon_resource, &lang.to_string()).await
+        helpers::get_pokemon_name(client, mon_resource, &lang.to_string()).await
       } else {
         mon_resource.name.clone()
       }

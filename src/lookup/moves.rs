@@ -16,7 +16,7 @@ pub async fn print_moves(
   level: Option<i64>,
 ) -> Result<Vec<String>, clap::Error> {
   // Create pokemon resource
-  let mon_resource = match pokemon::get_by_name(&pokemon.replace(" ", "-"), &client).await {
+  let mon_resource = match pokemon::get_by_name(&pokemon.replace(" ", "-"), client).await {
     Ok(x) => x,
     Err(_) => {
       let valid = cli::VALID;
@@ -65,7 +65,7 @@ pub async fn print_moves(
   moves.sort_by(|m, n| n.level.cmp(&m.level));
 
   // Get current moveset (if requested)
-  let mut moves = if let Some(_) = level {
+  let mut moves = if level.is_some() {
     moves.iter().take(4).collect::<Vec<_>>()
   } else {
     moves.iter().collect::<Vec<_>>()
@@ -77,7 +77,7 @@ pub async fn print_moves(
   result.push(format!(
     "{}:",
     if !fast {
-      helpers::get_pokemon_name(&client, &mon_resource, &lang.to_string()).await
+      helpers::get_pokemon_name(client, &mon_resource, &lang.to_string()).await
     } else {
       mon_resource.name.clone()
     }

@@ -23,7 +23,7 @@ async fn main() {
       if let Some(home) = std::env::home_dir() {
         let dirpath = format!("{}/.cache", home.display());
         let dirpath = Path::new(&dirpath);
-        if dirpath.exists() || matches!(create_dir(dirpath), Ok(_)) {
+        if dirpath.exists() || create_dir(dirpath).is_ok() {
           result = Some(format!("{}/{}", dirpath.display(), get_appname()).into());
         }
       }
@@ -132,13 +132,11 @@ async fn main() {
 
   // Handle output
   match result {
-    Ok(s) if s.len() == 0 => println!("No results found."),
-    Ok(s) => s.iter().for_each(|x| println!("{}", x)),
+    Ok(s) if s.is_empty() => println!("No results found."),
+    Ok(s) => s.iter().for_each(|x| println!("{x}")),
     Err(err) => err.exit(),
   };
 }
 
 #[cfg(test)]
-mod tests {
-  use super::*;
-}
+mod tests {}

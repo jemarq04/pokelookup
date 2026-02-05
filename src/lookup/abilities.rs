@@ -15,7 +15,7 @@ pub async fn print_abilities(
   recursive: bool,
 ) -> Result<Vec<String>, clap::Error> {
   // Create pokemon resources
-  let resources = match helpers::get_pokemon_from_chain(&client, &pokemon, recursive).await {
+  let resources = match helpers::get_pokemon_from_chain(client, pokemon, recursive).await {
     Ok(x) => x,
     Err(_) => {
       let valid = cli::VALID;
@@ -41,7 +41,7 @@ pub async fn print_abilities(
   for mon_resource in resources.iter() {
     // Get ability resources
     let abilities = match future::try_join_all(mon_resource.abilities.iter().map(async |a| {
-      match a.ability.follow(&client).await {
+      match a.ability.follow(client).await {
         Ok(x) => Ok(Ability {
           hidden: a.is_hidden,
           ability: x,
@@ -77,7 +77,7 @@ pub async fn print_abilities(
     result.push(format!(
       "{}:",
       if !fast {
-        helpers::get_pokemon_name(&client, &mon_resource, &lang.to_string()).await
+        helpers::get_pokemon_name(client, mon_resource, &lang.to_string()).await
       } else {
         mon_resource.name.clone()
       }

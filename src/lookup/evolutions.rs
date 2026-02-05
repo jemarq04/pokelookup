@@ -16,7 +16,7 @@ pub async fn print_evolutions(
   all: bool,
 ) -> Result<Vec<String>, clap::Error> {
   // Create pokemon species resource
-  let species = match pokemon_species::get_by_name(&pokemon.replace(" ", "-"), &client).await {
+  let species = match pokemon_species::get_by_name(&pokemon.replace(" ", "-"), client).await {
     Ok(x) => x,
     Err(_) => {
       return Err(cli::error(
@@ -31,7 +31,7 @@ pub async fn print_evolutions(
   let mut force_show_all = false;
   if let Some(chain_resource) = species.evolution_chain {
     // Get evolution chain resource
-    let chain = match chain_resource.follow(&client).await {
+    let chain = match chain_resource.follow(client).await {
       Ok(x) => x,
       Err(_) => {
         return Err(cli::error(
@@ -44,11 +44,11 @@ pub async fn print_evolutions(
       },
     };
 
-    if chain.chain.evolves_to.len() == 0 {
+    if chain.chain.evolves_to.is_empty() {
       // Record first species name
       result.push(
         helpers::get_evolution_name(
-          &client,
+          client,
           &chain.chain.species,
           &lang.to_string(),
           fast || secret,
@@ -67,17 +67,17 @@ pub async fn print_evolutions(
     }
 
     for evo1 in chain.chain.evolves_to.iter() {
-      if evo1.evolution_details.len() == 0 {
+      if evo1.evolution_details.is_empty() {
         result.push(format!(
           "{} -> ??? -> {}",
           helpers::get_evolution_name(
-            &client,
+            client,
             &chain.chain.species,
             &lang.to_string(),
             fast || secret,
           )
           .await,
-          helpers::get_evolution_name(&client, &evo1.species, &lang.to_string(), fast || secret)
+          helpers::get_evolution_name(client, &evo1.species, &lang.to_string(), fast || secret)
             .await,
         ));
       } else {
@@ -85,7 +85,7 @@ pub async fn print_evolutions(
           result.push(format!(
             "{} -> {}",
             helpers::get_evolution_name(
-              &client,
+              client,
               &chain.chain.species,
               &lang.to_string(),
               fast || secret,
@@ -99,7 +99,7 @@ pub async fn print_evolutions(
           ));
 
           if let Some(details) =
-            helpers::get_evolution_details(&client, &method1, &lang.to_string(), fast).await
+            helpers::get_evolution_details(client, method1, &lang.to_string(), fast).await
           {
             result
               .last_mut()
@@ -109,7 +109,7 @@ pub async fn print_evolutions(
 
           result.last_mut().unwrap().push_str(&format!(
             " -> {}",
-            helpers::get_evolution_name(&client, &evo1.species, &lang.to_string(), fast || secret)
+            helpers::get_evolution_name(client, &evo1.species, &lang.to_string(), fast || secret)
               .await,
           ));
 
@@ -149,7 +149,7 @@ pub async fn print_evolutions(
               );
 
               if let Some(details) =
-                helpers::get_evolution_details(&client, &method2, &lang.to_string(), fast).await
+                helpers::get_evolution_details(client, method2, &lang.to_string(), fast).await
               {
                 temp_steps.push_str(&format!(" ({details})"));
               }
@@ -157,7 +157,7 @@ pub async fn print_evolutions(
               temp_steps.push_str(&format!(
                 " -> {}",
                 helpers::get_evolution_name(
-                  &client,
+                  client,
                   &evo2.species,
                   &lang.to_string(),
                   fast || secret
@@ -169,7 +169,7 @@ pub async fn print_evolutions(
                 result.last_mut().unwrap().push_str(&temp_steps);
                 first_evo2 = false;
               } else {
-                result.push(format!("{}{}", curr_steps, temp_steps));
+                result.push(format!("{curr_steps}{temp_steps}"));
               }
             }
           }

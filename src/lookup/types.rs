@@ -14,7 +14,7 @@ pub async fn print_types(
   recursive: bool,
 ) -> Result<Vec<String>, clap::Error> {
   // Create pokemon resources
-  let resources = match helpers::get_pokemon_from_chain(&client, &pokemon, recursive).await {
+  let resources = match helpers::get_pokemon_from_chain(client, pokemon, recursive).await {
     Ok(x) => x,
     Err(_) => {
       let valid = cli::VALID;
@@ -46,7 +46,7 @@ pub async fn print_types(
     result.push(format!(
       "{}:",
       if !fast {
-        helpers::get_pokemon_name(&client, &mon_resource, &lang.to_string()).await
+        helpers::get_pokemon_name(client, mon_resource, &lang.to_string()).await
       } else {
         mon_resource.name.clone()
       }
