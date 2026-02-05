@@ -145,9 +145,8 @@ mod tests {
   #[test]
   fn test_cli_varieties() {
     let args = svec![get_appname(), "list", "-f", "meowth"];
-    match Args::try_parse_from(args) {
-      Err(e) => panic!("{}", e.render()),
-      Ok(_) => {},
+    if let Err(e) = Args::try_parse_from(args) {
+      panic!("{}", e.render());
     }
   }
 }
