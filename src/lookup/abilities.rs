@@ -41,7 +41,7 @@ pub async fn print_abilities(
   for mon_resource in resources.iter() {
     // Get ability resources
     let abilities = match future::try_join_all(mon_resource.abilities.iter().map(async |a| {
-      match a.ability.follow(client).await {
+      match a.ability.clone().unwrap().follow(client).await {
         Ok(x) => Ok(Ability {
           hidden: a.is_hidden,
           ability: x,
