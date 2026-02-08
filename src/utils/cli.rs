@@ -69,6 +69,9 @@ pub enum SubArgs {
     #[arg(short, long, help = "skip API requests for formatted names")]
     fast: bool,
 
+    #[arg(short, long = "gen", help = "generation to query")]
+    generation: Option<i64>,
+
     #[arg(value_enum,
       short = 'L',
       long,
