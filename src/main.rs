@@ -51,9 +51,10 @@ async fn main() {
     SubArgs::TypeCmd {
       pokemon,
       fast,
+      generation,
       lang,
       recursive,
-    } => lookup::print_types(&client, &pokemon, fast, lang, recursive).await,
+    } => lookup::print_types(&client, &pokemon, generation, fast, lang, recursive).await,
     SubArgs::AbilityCmd {
       pokemon,
       fast,
