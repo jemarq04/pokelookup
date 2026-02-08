@@ -99,7 +99,7 @@ async fn main() {
       lang,
     } => lookup::print_matchups(&client, primary, secondary, list, fast, lang).await,
     #[cfg(feature = "web")]
-    SubArgs::SearchCmd {
+    SubArgs::WebCmd {
       endpoint,
       generation,
       area,
