@@ -388,8 +388,8 @@ mod tests {
       "Eevee -> Use item (item: Fire Stone) -> Flareon",
       "Eevee -> Level up (min_happiness: 160, time_of_day: day) -> Espeon",
       "Eevee -> Level up (min_happiness: 160, time_of_day: night) -> Umbreon",
-      "Eevee -> Use item (item: Leaf Stone) -> Leafeon",
-      "Eevee -> Use item (item: Ice Stone) -> Glaceon",
+      "Eevee -> Level up (location: Lush Jungle) -> Leafeon",
+      "Eevee -> Level up (location: Mount Lanakila) -> Glaceon",
       "Eevee -> Level up (known_move_type: Fairy, min_happiness: 160) -> Sylveon",
     ];
 
