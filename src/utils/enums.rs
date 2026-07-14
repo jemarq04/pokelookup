@@ -34,6 +34,7 @@ pub enum VersionGroup {
   BlueJapan,
   LegendsZa,
   MegaDimension,
+  Champions,
 }
 impl_Display!(VersionGroup);
 
@@ -73,20 +74,25 @@ pub enum Version {
   LetsGoEevee,
   Sword,
   Shield,
-  TheIsleOfArmor,
-  TheCrownTundra,
+  TheIsleOfArmorSword,
+  TheCrownTundraSword,
   BrilliantDiamond,
   ShiningPearl,
   LegendsArceus,
   Scarlet,
   Violet,
-  TheTealMask,
-  TheIndigoDisk,
+  TheTealMaskScarlet,
+  TheIndigoDiskScarlet,
   RedJapan,
   GreenJapan,
   BlueJapan,
   LegendsZa,
   MegaDimension,
+  Champions,
+  TheIsleOfArmorShield,
+  TheCrownTundraShield,
+  TheTealMaskViolet,
+  TheIndigoDiskViolet,
 }
 impl_Display!(Version);
 
@@ -128,5 +134,6 @@ pub enum LanguageId {
   Ja,
   ZhHans,
   PtBr,
+  Es419,
 }
 impl_Display!(LanguageId);

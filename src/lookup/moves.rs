@@ -62,7 +62,7 @@ pub async fn print_moves(
   }
 
   // Sort moves by descending level
-  moves.sort_by(|m, n| n.level.cmp(&m.level));
+  moves.sort_by_key(|m| std::cmp::Reverse(m.level));
 
   // Get current moveset (if requested)
   let mut moves = if level.is_some() {
