@@ -9,6 +9,7 @@ use rustemon::client::RustemonClient;
 pub async fn print_types(
   client: &RustemonClient,
   pokemon: &str,
+  generation: Option<i64>,
   fast: bool,
   lang: LanguageId,
   recursive: bool,
@@ -41,6 +42,22 @@ pub async fn print_types(
         item.type_.name.clone()
       });
     }
+    if let Some(generation) = generation {
+      for past_item in mon_resource.past_types.iter() {
+        if let Ok(x) = past_item.generation.follow(client).await
+          && x.id >= generation
+        {
+          type_names.clear();
+          for item in past_item.types.iter() {
+            type_names.push(if !fast {
+              get_name!(follow item.type_, client, lang.to_string())
+            } else {
+              item.type_.name.clone()
+            });
+          }
+        }
+      }
+    }
 
     // Return types
     result.push(format!(
@@ -72,10 +89,41 @@ mod tests {
 
     for fast in [false, true].into_iter() {
       let pokemon = String::from("toxel");
+      let generation = None;
       let lang = LanguageId::En;
       let recursive = false;
 
-      match print_types(&client, &pokemon, fast, lang, recursive).await {
+      match print_types(&client, &pokemon, generation, fast, lang, recursive).await {
+        Ok(s) => assert_eq!(
+          s,
+          if fast {
+            success.iter().map(|x| x.to_lowercase()).collect()
+          } else {
+            success.clone()
+          }
+        ),
+        Err(err) => panic!("{}", err.render()),
+      }
+    }
+  }
+
+  #[tokio::test]
+  async fn test_past_types() {
+    let client = RustemonClient::default();
+
+    let success: Vec<String> = vec!["jigglypuff:", "  normal"]
+      .into_iter()
+      .map(|x| x.into())
+      .collect();
+
+    for generation in 1..=5 {
+      let pokemon = String::from("jigglypuff");
+      let generation = Some(generation);
+      let fast = true;
+      let lang = LanguageId::En;
+      let recursive = false;
+
+      match print_types(&client, &pokemon, generation, fast, lang, recursive).await {
         Ok(s) => assert_eq!(
           s,
           if fast {
@@ -95,11 +143,12 @@ mod tests {
 
     let success = vec!["stantler:", "  normal", "wyrdeer:", "  normal/psychic"];
     let pokemon = String::from("stantler");
+    let generation = None;
     let fast = true;
     let lang = LanguageId::En;
     let recursive = true;
 
-    match print_types(&client, &pokemon, fast, lang, recursive).await {
+    match print_types(&client, &pokemon, generation, fast, lang, recursive).await {
       Ok(s) => assert_eq!(s, success),
       Err(err) => panic!("{}", err.render()),
     }

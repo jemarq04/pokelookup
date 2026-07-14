@@ -69,6 +69,9 @@ pub enum SubArgs {
     #[arg(short, long, help = "skip API requests for formatted names")]
     fast: bool,
 
+    #[arg(short, long = "gen", help = "generation to query")]
+    generation: Option<i64>,
+
     #[arg(value_enum,
       short = 'L',
       long,
@@ -278,8 +281,8 @@ pub enum SubArgs {
 
   /// Open web pages for a given endpoint. A valid endpoint includes pokemon, abilities, items, and more.
   #[cfg(feature = "web")]
-  #[command(name = "search", long_about)]
-  SearchCmd {
+  #[command(name = "web", long_about)]
+  WebCmd {
     #[command(flatten)]
     endpoint: Endpoints,
 
