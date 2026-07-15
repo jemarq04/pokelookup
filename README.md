@@ -27,7 +27,7 @@ path is `~/.cache/pokelookup`. If you want to change that, use the `--cache-dir`
 By default, this package uses the `wrap_help` feature from [`clap`](https://crates.io/crates/clap) to wrap the help and usage printouts based on
 the terminal's current width. 
 
-Additionally, there is a `web` feature which can be enabled which adds an additional `pokelookup search` subcommand. This subcommand will open pages
+Additionally, there is a `web` feature which can be enabled which adds an additional `pokelookup web` subcommand. This subcommand will open pages
 from [Serebii](https://www.serebii.net/) based on the query provided. To enable this, use `cargo install -F web` when installing the package.
 
 ## Contributing
