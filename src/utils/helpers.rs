@@ -314,7 +314,7 @@ pub async fn get_evolution_details(
     result.push(format!(
       "base_form: {}",
       if !fast {
-        get_pokemon_name(client, &resource.follow(&client).await.unwrap(), lang).await
+        get_pokemon_name(client, &resource.follow(client).await.unwrap(), lang).await
       } else {
         resource.name.clone()
       },
@@ -326,7 +326,7 @@ pub async fn get_evolution_details(
     result.push(format!(
       "evolved_form: {}",
       if !fast {
-        get_pokemon_name(client, &resource.follow(&client).await.unwrap(), lang).await
+        get_pokemon_name(client, &resource.follow(client).await.unwrap(), lang).await
       } else {
         resource.name.clone()
       },
