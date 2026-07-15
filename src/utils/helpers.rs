@@ -231,6 +231,11 @@ pub async fn get_evolution_details(
     result.push(format!("min_affection: {val}"));
   }
 
+  // Check special rock requirement
+  if details.near_special_rock {
+    result.push(String::from("near_special_rock"));
+  }
+
   // Check multiplayer requirement
   if details.needs_multiplayer {
     result.push(String::from("needs_multiplayer"));
@@ -290,6 +295,42 @@ pub async fn get_evolution_details(
   // Check upside-down
   if details.turn_upside_down {
     result.push(String::from("turn_upside_down"));
+  }
+
+  // Check region
+  if let Some(resource) = &details.region {
+    result.push(format!(
+      "region: {}",
+      if !fast {
+        get_name!(follow resource, client, lang)
+      } else {
+        resource.name.clone()
+      },
+    ));
+  }
+
+  // Check base form
+  if let Some(resource) = &details.base_form {
+    result.push(format!(
+      "base_form: {}",
+      if !fast {
+        get_pokemon_name(client, &resource.follow(&client).await.unwrap(), lang).await
+      } else {
+        resource.name.clone()
+      },
+    ));
+  }
+
+  // Check evolved form
+  if let Some(resource) = &details.evolved_form {
+    result.push(format!(
+      "evolved_form: {}",
+      if !fast {
+        get_pokemon_name(client, &resource.follow(&client).await.unwrap(), lang).await
+      } else {
+        resource.name.clone()
+      },
+    ));
   }
 
   // Check minimum move count
