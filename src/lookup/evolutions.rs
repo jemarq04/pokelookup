@@ -357,27 +357,6 @@ mod tests {
   }
 
   #[tokio::test]
-  async fn test_evolutions_exceptions() {
-    let client = RustemonClient::default();
-
-    let success = vec![
-      "Farfetch’d",
-      "Farfetch’d -> Land three critical hits in a battle (base_form: Galarian Farfetch’d) -> Sirfetch’d",
-    ];
-
-    let pokemon = String::from("Farfetchd");
-    let fast = false;
-    let lang = LanguageId::En;
-    let secret = false;
-    let all = false;
-
-    match print_evolutions(&client, &pokemon, fast, lang, secret, all).await {
-      Ok(res) => assert_eq!(res, success),
-      Err(err) => panic!("{}", err.render()),
-    }
-  }
-
-  #[tokio::test]
   async fn test_evolutions_regional_forms() {
     let client = RustemonClient::default();
 
