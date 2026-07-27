@@ -211,6 +211,9 @@ pub enum SubArgs {
 
     #[arg(short, help = "recursively check evolution chain")]
     recursive: bool,
+
+    #[arg(short, long, help = "condense output by only showing location areas")]
+    condensed: bool,
   },
 
   /// Look up evolution chain for a given pokemon species.
