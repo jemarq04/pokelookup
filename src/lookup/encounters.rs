@@ -215,24 +215,39 @@ mod tests {
 
   #[tokio::test]
   async fn test_encounters_full() {
-    //TODO: finish test
-    unimplemented!();
-    /*
     let client = RustemonClient::default();
 
-    let success = vec![];
+    let success = vec![
+      "skwovet:",
+      " - galar-route-1-area\n   * overworld\n   * walk",
+      " - galar-route-2-main\n   * overworld",
+      " - galar-route-3-east\n   * berry-trees",
+      " - galar-route-4-area\n   * berry-trees",
+      " - galar-route-5-area\n   * berry-trees",
+      " - dappled-grove-area\n   * berry-trees",
+      " - motostoke-riverbank-area\n   * berry-trees",
+      " - north-lake-miloch-area\n   * berry-trees",
+      " - rolling-fields-main\n   * berry-trees",
+      " - slumbering-weald-main\n   * overworld\n   * walk",
+      " - watchtower-ruins-area\n   * berry-trees",
+      " - motostoke-pokemon-center\n   * npc-trade",
+      " - rolling-fields-max-den-a\n   * max-raid",
+      " - east-lake-axewell-max-den-c\n   * max-raid",
+      " - motostoke-riverbank-max-den-a\n   * max-raid",
+      " - bridge-field-max-den-e\n   * max-raid",
+      " - stony-wilderness-max-den-a\n   * max-raid",
+    ];
 
-    let version = Version::Firered;
-    let pokemon = String::from("goldeen");
+    let version = Version::Sword;
+    let pokemon = String::from("skwovet");
     let fast = true;
     let lang = LanguageId::En;
-    let recursive = true;
-    let condensed = true;
+    let recursive = false;
+    let condensed = false;
 
     match print_encounters(&client, version, &pokemon, fast, lang, recursive, condensed).await {
       Ok(res) => assert_eq!(res, success),
       Err(err) => panic!("{}", err.render()),
     }
-    */
   }
 }
