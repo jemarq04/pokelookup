@@ -118,11 +118,14 @@ pub async fn get_evolution_name(
   species: &rustemon::model::resource::NamedApiResource<rustemon::model::pokemon::PokemonSpecies>,
   lang: &str,
   fast: bool,
+  secret: bool,
 ) -> String {
-  if !fast {
-    get_name!(follow species, client, lang)
-  } else {
+  if secret {
+    String::from("MON")
+  } else if fast {
     species.name.clone()
+  } else {
+    get_name!(follow species, client, lang)
   }
 }
 
@@ -133,6 +136,20 @@ pub async fn get_evolution_details(
   fast: bool,
 ) -> Option<String> {
   let mut result = Vec::new();
+
+  // Check version group
+  if !details.is_default {
+    let version_group = details.version_group.follow(client).await.unwrap();
+    let mut versions = Vec::new();
+    for version_resource in version_group.versions.iter() {
+      versions.push(if !fast {
+        get_name!(follow version_resource, client, lang)
+      } else {
+        version_resource.name.clone()
+      });
+    }
+    result.push(format!("versions: {}", versions.join("/"),));
+  }
 
   // Check item
   if let Some(resource) = &details.item {
@@ -231,6 +248,11 @@ pub async fn get_evolution_details(
     result.push(format!("min_affection: {val}"));
   }
 
+  // Check special rock requirement
+  if details.near_special_rock {
+    result.push(String::from("near_special_rock"));
+  }
+
   // Check multiplayer requirement
   if details.needs_multiplayer {
     result.push(String::from("needs_multiplayer"));
@@ -290,6 +312,18 @@ pub async fn get_evolution_details(
   // Check upside-down
   if details.turn_upside_down {
     result.push(String::from("turn_upside_down"));
+  }
+
+  // Check region
+  if let Some(resource) = &details.region {
+    result.push(format!(
+      "region: {}",
+      if !fast {
+        get_name!(follow resource, client, lang)
+      } else {
+        resource.name.clone()
+      },
+    ));
   }
 
   // Check minimum move count
