@@ -1,7 +1,7 @@
+use crate::get_name;
 use crate::utils::cli;
 use crate::utils::enums::LanguageId;
 use crate::utils::helpers;
-use crate::{get_name, svec};
 use clap::error::ErrorKind;
 use rustemon::Follow;
 use rustemon::client::RustemonClient;
@@ -28,7 +28,6 @@ pub async fn print_evolutions(
 
   // Iterate over evolution chain, if present
   let mut result: Vec<String> = Vec::new();
-  let mut force_show_all = false;
   if let Some(chain_resource) = species.evolution_chain {
     // Get evolution chain resource
     let chain = match chain_resource.follow(client).await {
@@ -45,124 +44,121 @@ pub async fn print_evolutions(
     };
 
     if chain.chain.evolves_to.is_empty() {
-      // Record first species name
+      // Record species name
       result.push(
         helpers::get_evolution_name(
           client,
           &chain.chain.species,
           &lang.to_string(),
-          fast || secret,
+          fast,
+          secret,
         )
         .await,
       );
     }
 
-    // Record exceptional cases
-    if svec![
-      "rattata", "sandshrew", "vulpix", "meowth", "cubone", "slowpoke", "darumaka"
-    ]
-    .contains(&chain.chain.species.name)
-    {
-      force_show_all = true;
-    }
-
     for evo1 in chain.chain.evolves_to.iter() {
       if evo1.evolution_details.is_empty() {
+        // Unknown evolution detail
         result.push(format!(
           "{} -> ??? -> {}",
           helpers::get_evolution_name(
             client,
             &chain.chain.species,
             &lang.to_string(),
-            fast || secret,
+            fast,
+            secret,
           )
           .await,
-          helpers::get_evolution_name(client, &evo1.species, &lang.to_string(), fast || secret)
-            .await,
+          helpers::get_evolution_name(client, &evo1.species, &lang.to_string(), fast, secret).await,
         ));
       } else {
-        for method1 in evo1.evolution_details.iter() {
+        for details1 in evo1.evolution_details.iter() {
+          if !all && !details1.is_default {
+            continue;
+          }
+
           result.push(format!(
             "{} -> {}",
-            helpers::get_evolution_name(
-              client,
-              &chain.chain.species,
-              &lang.to_string(),
-              fast || secret,
-            )
-            .await,
-            if !fast {
-              get_name!(follow method1.trigger, client, lang.to_string())
+            if let Some(base_form_resource) = &details1.base_form {
+              let base_form = base_form_resource.follow(client).await.unwrap();
+              helpers::get_pokemon_name(client, &base_form, &lang.to_string()).await
             } else {
-              method1.trigger.name.clone()
+              helpers::get_evolution_name(
+                client,
+                &chain.chain.species,
+                &lang.to_string(),
+                fast,
+                secret,
+              )
+              .await
+            },
+            if !fast {
+              get_name!(follow details1.trigger, client, lang.to_string())
+            } else {
+              details1.trigger.name.clone()
             },
           ));
 
-          if let Some(details) =
-            helpers::get_evolution_details(client, method1, &lang.to_string(), fast).await
+          if let Some(details_str) =
+            helpers::get_evolution_details(client, details1, &lang.to_string(), fast || secret)
+              .await
           {
             result
               .last_mut()
               .unwrap()
-              .push_str(&format!(" ({details})"));
+              .push_str(&format!(" ({details_str})"));
           }
 
           result.last_mut().unwrap().push_str(&format!(
             " -> {}",
-            helpers::get_evolution_name(client, &evo1.species, &lang.to_string(), fast || secret)
-              .await,
-          ));
-
-          // Check for exceptional cases
-          if svec!["sirfetchd", "overqwil", "cursola", "basculegion"].contains(&evo1.species.name) {
-            result.insert(
-              0,
-              if !fast {
-                get_name!(follow chain.chain.species, client, lang.to_string())
-              } else {
-                chain.chain.species.name.clone()
-              },
-            );
-          } else if evo1.species.name == "mr-mime" {
-            result.insert(0, result.last().unwrap().clone());
-            *result.last_mut().unwrap() = if !fast {
-              get_name!(follow evo1.species, client, lang.to_string())
+            if let Some(evolved_form_resource) = &details1.evolved_form {
+              let evolved_form = evolved_form_resource.follow(client).await.unwrap();
+              helpers::get_pokemon_name(client, &evolved_form, &lang.to_string()).await
             } else {
-              evo1.species.name.clone()
-            };
-          } else if evo1.species.name == "linoone" {
-            result.insert(0, result.last().unwrap().clone());
-          }
+              helpers::get_evolution_name(client, &evo1.species, &lang.to_string(), fast, secret)
+                .await
+            }
+          ));
 
           // Check for second evolution
           let mut first_evo2 = true;
           let curr_steps = result.last().unwrap().clone();
           for evo2 in evo1.evolves_to.iter() {
-            for method2 in evo2.evolution_details.iter() {
+            for details2 in evo2.evolution_details.iter() {
+              if !all && !details2.is_default {
+                continue;
+              }
               let mut temp_steps: String = format!(
                 " -> {}",
                 if !fast {
-                  get_name!(follow method2.trigger, client, lang.to_string())
+                  get_name!(follow details2.trigger, client, lang.to_string())
                 } else {
-                  method2.trigger.name.clone()
-                },
+                  details2.trigger.name.clone()
+                }
               );
 
-              if let Some(details) =
-                helpers::get_evolution_details(client, method2, &lang.to_string(), fast).await
+              if let Some(details_str) =
+                helpers::get_evolution_details(client, details2, &lang.to_string(), fast).await
               {
-                temp_steps.push_str(&format!(" ({details})"));
+                temp_steps.push_str(&format!(" ({details_str})"));
               }
 
               temp_steps.push_str(&format!(
                 " -> {}",
-                helpers::get_evolution_name(
-                  client,
-                  &evo2.species,
-                  &lang.to_string(),
-                  fast || secret
-                )
-                .await,
+                if let Some(evolved_form_resource) = &details2.evolved_form {
+                  let evolved_form = evolved_form_resource.follow(client).await.unwrap();
+                  helpers::get_pokemon_name(client, &evolved_form, &lang.to_string()).await
+                } else {
+                  helpers::get_evolution_name(
+                    client,
+                    &evo2.species,
+                    &lang.to_string(),
+                    fast,
+                    secret,
+                  )
+                  .await
+                }
               ));
 
               if first_evo2 {
@@ -178,58 +174,13 @@ pub async fn print_evolutions(
     }
   } else {
     // No chain found => record species name to final result
-    result.push(if !fast {
-      get_name!(species, client, lang.to_string())
-    } else {
+    result.push(if secret {
+      String::from("???")
+    } else if fast {
       species.name.clone()
+    } else {
+      get_name!(species, client, lang.to_string())
     });
-  }
-
-  // Only provide newest evolution methods
-  if !all && !force_show_all {
-    let mut temp = Vec::new();
-    let mut prev_names = Vec::new();
-    let mut prev_line = String::new();
-
-    for line in result.iter() {
-      // Get list of pokemon names
-      let mut names: Vec<String> = line.split(" -> ").map(|s| s.to_string()).collect();
-      for i in (1..4).step_by(2).rev() {
-        if names.len() > i {
-          names.remove(i);
-        }
-      }
-
-      // Add most recent evolution method to temp vector
-      if names == prev_names {
-        prev_line = line.clone();
-      } else {
-        if !prev_line.is_empty() {
-          temp.push(prev_line);
-        }
-        prev_names = names.clone();
-        prev_line = line.clone();
-      }
-    }
-    temp.push(prev_line);
-
-    // Set output to temp vector
-    result = temp;
-  }
-
-  // Hide pokemon names, if desired
-  if secret {
-    let mut temp = Vec::new();
-
-    for line in result.iter() {
-      let mut info: Vec<String> = line.split(" -> ").map(|s| s.to_string()).collect();
-      for i in (0..info.len()).step_by(2) {
-        info[i] = String::from("MON");
-      }
-      temp.push(info.join(" -> "));
-    }
-
-    result = temp;
   }
 
   Ok(result)
