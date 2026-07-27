@@ -5,6 +5,7 @@ use crate::utils::helpers;
 use clap::error::ErrorKind;
 use rustemon::Follow;
 use rustemon::client::RustemonClient;
+use rustemon::model::encounters::EncounterMethod;
 
 pub async fn print_encounters(
   client: &RustemonClient,
@@ -13,6 +14,7 @@ pub async fn print_encounters(
   fast: bool,
   lang: LanguageId,
   recursive: bool,
+  condensed: bool,
 ) -> Result<Vec<String>, clap::Error> {
   // Create pokemon resources
   let resources = match helpers::get_pokemon_from_chain(client, pokemon, recursive).await {
@@ -52,11 +54,37 @@ pub async fn print_encounters(
     for enc in encounters.iter() {
       for det in enc.version_details.iter() {
         if det.version.name == version.to_string() {
-          encounter_names.push(if !fast {
+          let name = if !fast {
             get_name!(follow enc.location_area, client, lang.to_string())
           } else {
             enc.location_area.name.clone()
-          });
+          };
+          if condensed {
+            encounter_names.push(name);
+          } else {
+            let mut temp_details = Vec::new();
+            temp_details.push(name);
+
+            let mut encounter_methods: Vec<EncounterMethod> = Vec::new();
+            for enc_details in det.encounter_details.iter() {
+              if let Ok(encounter_method) = enc_details.method.follow(client).await
+                && encounter_methods
+                  .iter()
+                  .all(|method| method.name != encounter_method.name)
+              {
+                encounter_methods.push(encounter_method);
+              }
+            }
+
+            // TODO: Get prose
+            for method in encounter_methods.iter() {
+              temp_details.push(format!("   * {}", method.name.clone()));
+            }
+            temp_details.push(String::from(""));
+
+            encounter_names.push(temp_details.join("\n"));
+          }
+
           break;
         }
       }
@@ -125,8 +153,9 @@ mod tests {
       let fast = idx == 0;
       let lang = LanguageId::En;
       let recursive = false;
+      let condensed = true;
 
-      match print_encounters(&client, version, &pokemon, fast, lang, recursive).await {
+      match print_encounters(&client, version, &pokemon, fast, lang, recursive, condensed).await {
         Ok(res) => assert_eq!(res, vals),
         Err(err) => panic!("{}", err.render()),
       }
@@ -170,10 +199,34 @@ mod tests {
     let fast = true;
     let lang = LanguageId::En;
     let recursive = true;
+    let condensed = true;
 
-    match print_encounters(&client, version, &pokemon, fast, lang, recursive).await {
+    match print_encounters(&client, version, &pokemon, fast, lang, recursive, condensed).await {
       Ok(res) => assert_eq!(res, success),
       Err(err) => panic!("{}", err.render()),
     }
+  }
+
+  #[tokio::test]
+  async fn test_encounters_full() {
+    //TODO: finish test
+    unimplemented!();
+    /*
+    let client = RustemonClient::default();
+
+    let success = vec![];
+
+    let version = Version::Firered;
+    let pokemon = String::from("goldeen");
+    let fast = true;
+    let lang = LanguageId::En;
+    let recursive = true;
+    let condensed = true;
+
+    match print_encounters(&client, version, &pokemon, fast, lang, recursive, condensed).await {
+      Ok(res) => assert_eq!(res, success),
+      Err(err) => panic!("{}", err.render()),
+    }
+    */
   }
 }
