@@ -137,6 +137,20 @@ pub async fn get_evolution_details(
 ) -> Option<String> {
   let mut result = Vec::new();
 
+  // Check version group
+  if !details.is_default {
+    let version_group = details.version_group.follow(client).await.unwrap();
+    let mut versions = Vec::new();
+    for version_resource in version_group.versions.iter() {
+      versions.push(if !fast {
+        get_name!(follow version_resource, client, lang)
+      } else {
+        version_resource.name.clone()
+      });
+    }
+    result.push(format!("versions: {}", versions.join("/"),));
+  }
+
   // Check item
   if let Some(resource) = &details.item {
     result.push(format!(
