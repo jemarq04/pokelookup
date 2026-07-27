@@ -1,7 +1,7 @@
+use crate::get_name;
 use crate::utils::cli;
 use crate::utils::enums::LanguageId;
 use crate::utils::helpers;
-use crate::{get_name, svec};
 use clap::error::ErrorKind;
 use rustemon::Follow;
 use rustemon::client::RustemonClient;
@@ -28,7 +28,6 @@ pub async fn print_evolutions(
 
   // Iterate over evolution chain, if present
   let mut result: Vec<String> = Vec::new();
-  let mut force_show_all = false;
   if let Some(chain_resource) = species.evolution_chain {
     // Get evolution chain resource
     let chain = match chain_resource.follow(client).await {
@@ -45,124 +44,121 @@ pub async fn print_evolutions(
     };
 
     if chain.chain.evolves_to.is_empty() {
-      // Record first species name
+      // Record species name
       result.push(
         helpers::get_evolution_name(
           client,
           &chain.chain.species,
           &lang.to_string(),
-          fast || secret,
+          fast,
+          secret,
         )
         .await,
       );
     }
 
-    // Record exceptional cases
-    if svec![
-      "rattata", "sandshrew", "vulpix", "meowth", "cubone", "slowpoke", "darumaka"
-    ]
-    .contains(&chain.chain.species.name)
-    {
-      force_show_all = true;
-    }
-
     for evo1 in chain.chain.evolves_to.iter() {
       if evo1.evolution_details.is_empty() {
+        // Unknown evolution detail
         result.push(format!(
           "{} -> ??? -> {}",
           helpers::get_evolution_name(
             client,
             &chain.chain.species,
             &lang.to_string(),
-            fast || secret,
+            fast,
+            secret,
           )
           .await,
-          helpers::get_evolution_name(client, &evo1.species, &lang.to_string(), fast || secret)
-            .await,
+          helpers::get_evolution_name(client, &evo1.species, &lang.to_string(), fast, secret).await,
         ));
       } else {
-        for method1 in evo1.evolution_details.iter() {
+        for details1 in evo1.evolution_details.iter() {
+          if !all && !details1.is_default {
+            continue;
+          }
+
           result.push(format!(
             "{} -> {}",
-            helpers::get_evolution_name(
-              client,
-              &chain.chain.species,
-              &lang.to_string(),
-              fast || secret,
-            )
-            .await,
-            if !fast {
-              get_name!(follow method1.trigger, client, lang.to_string())
+            if let Some(base_form_resource) = &details1.base_form {
+              let base_form = base_form_resource.follow(client).await.unwrap();
+              helpers::get_pokemon_name(client, &base_form, &lang.to_string()).await
             } else {
-              method1.trigger.name.clone()
+              helpers::get_evolution_name(
+                client,
+                &chain.chain.species,
+                &lang.to_string(),
+                fast,
+                secret,
+              )
+              .await
+            },
+            if !fast {
+              get_name!(follow details1.trigger, client, lang.to_string())
+            } else {
+              details1.trigger.name.clone()
             },
           ));
 
-          if let Some(details) =
-            helpers::get_evolution_details(client, method1, &lang.to_string(), fast).await
+          if let Some(details_str) =
+            helpers::get_evolution_details(client, details1, &lang.to_string(), fast || secret)
+              .await
           {
             result
               .last_mut()
               .unwrap()
-              .push_str(&format!(" ({details})"));
+              .push_str(&format!(" ({details_str})"));
           }
 
           result.last_mut().unwrap().push_str(&format!(
             " -> {}",
-            helpers::get_evolution_name(client, &evo1.species, &lang.to_string(), fast || secret)
-              .await,
-          ));
-
-          // Check for exceptional cases
-          if svec!["sirfetchd", "overqwil", "cursola", "basculegion"].contains(&evo1.species.name) {
-            result.insert(
-              0,
-              if !fast {
-                get_name!(follow chain.chain.species, client, lang.to_string())
-              } else {
-                chain.chain.species.name.clone()
-              },
-            );
-          } else if evo1.species.name == "mr-mime" {
-            result.insert(0, result.last().unwrap().clone());
-            *result.last_mut().unwrap() = if !fast {
-              get_name!(follow evo1.species, client, lang.to_string())
+            if let Some(evolved_form_resource) = &details1.evolved_form {
+              let evolved_form = evolved_form_resource.follow(client).await.unwrap();
+              helpers::get_pokemon_name(client, &evolved_form, &lang.to_string()).await
             } else {
-              evo1.species.name.clone()
-            };
-          } else if evo1.species.name == "linoone" {
-            result.insert(0, result.last().unwrap().clone());
-          }
+              helpers::get_evolution_name(client, &evo1.species, &lang.to_string(), fast, secret)
+                .await
+            }
+          ));
 
           // Check for second evolution
           let mut first_evo2 = true;
           let curr_steps = result.last().unwrap().clone();
           for evo2 in evo1.evolves_to.iter() {
-            for method2 in evo2.evolution_details.iter() {
+            for details2 in evo2.evolution_details.iter() {
+              if !all && !details2.is_default {
+                continue;
+              }
               let mut temp_steps: String = format!(
                 " -> {}",
                 if !fast {
-                  get_name!(follow method2.trigger, client, lang.to_string())
+                  get_name!(follow details2.trigger, client, lang.to_string())
                 } else {
-                  method2.trigger.name.clone()
-                },
+                  details2.trigger.name.clone()
+                }
               );
 
-              if let Some(details) =
-                helpers::get_evolution_details(client, method2, &lang.to_string(), fast).await
+              if let Some(details_str) =
+                helpers::get_evolution_details(client, details2, &lang.to_string(), fast).await
               {
-                temp_steps.push_str(&format!(" ({details})"));
+                temp_steps.push_str(&format!(" ({details_str})"));
               }
 
               temp_steps.push_str(&format!(
                 " -> {}",
-                helpers::get_evolution_name(
-                  client,
-                  &evo2.species,
-                  &lang.to_string(),
-                  fast || secret
-                )
-                .await,
+                if let Some(evolved_form_resource) = &details2.evolved_form {
+                  let evolved_form = evolved_form_resource.follow(client).await.unwrap();
+                  helpers::get_pokemon_name(client, &evolved_form, &lang.to_string()).await
+                } else {
+                  helpers::get_evolution_name(
+                    client,
+                    &evo2.species,
+                    &lang.to_string(),
+                    fast,
+                    secret,
+                  )
+                  .await
+                }
               ));
 
               if first_evo2 {
@@ -178,58 +174,13 @@ pub async fn print_evolutions(
     }
   } else {
     // No chain found => record species name to final result
-    result.push(if !fast {
-      get_name!(species, client, lang.to_string())
-    } else {
+    result.push(if secret {
+      String::from("???")
+    } else if fast {
       species.name.clone()
+    } else {
+      get_name!(species, client, lang.to_string())
     });
-  }
-
-  // Only provide newest evolution methods
-  if !all && !force_show_all {
-    let mut temp = Vec::new();
-    let mut prev_names = Vec::new();
-    let mut prev_line = String::new();
-
-    for line in result.iter() {
-      // Get list of pokemon names
-      let mut names: Vec<String> = line.split(" -> ").map(|s| s.to_string()).collect();
-      for i in (1..4).step_by(2).rev() {
-        if names.len() > i {
-          names.remove(i);
-        }
-      }
-
-      // Add most recent evolution method to temp vector
-      if names == prev_names {
-        prev_line = line.clone();
-      } else {
-        if !prev_line.is_empty() {
-          temp.push(prev_line);
-        }
-        prev_names = names.clone();
-        prev_line = line.clone();
-      }
-    }
-    temp.push(prev_line);
-
-    // Set output to temp vector
-    result = temp;
-  }
-
-  // Hide pokemon names, if desired
-  if secret {
-    let mut temp = Vec::new();
-
-    for line in result.iter() {
-      let mut info: Vec<String> = line.split(" -> ").map(|s| s.to_string()).collect();
-      for i in (0..info.len()).step_by(2) {
-        info[i] = String::from("MON");
-      }
-      temp.push(info.join(" -> "));
-    }
-
-    result = temp;
   }
 
   Ok(result)
@@ -250,19 +201,19 @@ mod tests {
         "eevee -> use-item (item: fire-stone) -> flareon",
         "eevee -> level-up (min_happiness: 160, time_of_day: day) -> espeon",
         "eevee -> level-up (min_happiness: 160, time_of_day: night) -> umbreon",
-        "eevee -> level-up (location: eterna-forest) -> leafeon",
-        "eevee -> level-up (location: pinwheel-forest) -> leafeon",
-        "eevee -> level-up (location: kalos-route-20) -> leafeon",
+        "eevee -> level-up (versions: diamond/pearl, location: eterna-forest, near_special_rock) -> leafeon",
+        "eevee -> level-up (versions: black/white, location: pinwheel-forest, near_special_rock) -> leafeon",
+        "eevee -> level-up (versions: x/y, location: kalos-route-20, near_special_rock) -> leafeon",
         "eevee -> use-item (item: leaf-stone) -> leafeon",
-        "eevee -> level-up (location: petalburg-woods) -> leafeon",
-        "eevee -> level-up (location: lush-jungle) -> leafeon",
-        "eevee -> level-up (location: sinnoh-route-217) -> glaceon",
-        "eevee -> level-up (location: twist-mountain) -> glaceon",
-        "eevee -> level-up (location: frost-cavern) -> glaceon",
+        "eevee -> level-up (versions: omega-ruby/alpha-sapphire, location: petalburg-woods, near_special_rock) -> leafeon",
+        "eevee -> level-up (versions: sun/moon, location: lush-jungle, near_special_rock) -> leafeon",
+        "eevee -> level-up (versions: diamond/pearl, location: sinnoh-route-217, near_special_rock) -> glaceon",
+        "eevee -> level-up (versions: black/white, location: twist-mountain, near_special_rock) -> glaceon",
+        "eevee -> level-up (versions: x/y, location: frost-cavern, near_special_rock) -> glaceon",
         "eevee -> use-item (item: ice-stone) -> glaceon",
-        "eevee -> level-up (location: shoal-cave) -> glaceon",
-        "eevee -> level-up (location: mount-lanakila) -> glaceon",
-        "eevee -> level-up (known_move_type: fairy, min_affection: 2) -> sylveon",
+        "eevee -> level-up (versions: omega-ruby/alpha-sapphire, location: shoal-cave, near_special_rock) -> glaceon",
+        "eevee -> level-up (versions: sun/moon, location: mount-lanakila, near_special_rock) -> glaceon",
+        "eevee -> level-up (versions: x/y, known_move_type: fairy, min_affection: 2) -> sylveon",
         "eevee -> level-up (known_move_type: fairy, min_happiness: 160) -> sylveon",
       ],
       vec![
@@ -271,19 +222,19 @@ mod tests {
         "Eevee -> Use item (item: Fire Stone) -> Flareon",
         "Eevee -> Level up (min_happiness: 160, time_of_day: day) -> Espeon",
         "Eevee -> Level up (min_happiness: 160, time_of_day: night) -> Umbreon",
-        "Eevee -> Level up (location: Eterna Forest) -> Leafeon",
-        "Eevee -> Level up (location: Pinwheel Forest) -> Leafeon",
-        "Eevee -> Level up (location: Route 20) -> Leafeon",
+        "Eevee -> Level up (versions: Diamond/Pearl, location: Eterna Forest, near_special_rock) -> Leafeon",
+        "Eevee -> Level up (versions: Black/White, location: Pinwheel Forest, near_special_rock) -> Leafeon",
+        "Eevee -> Level up (versions: X/Y, location: Route 20, near_special_rock) -> Leafeon",
         "Eevee -> Use item (item: Leaf Stone) -> Leafeon",
-        "Eevee -> Level up (location: Petalburg Woods) -> Leafeon",
-        "Eevee -> Level up (location: Lush Jungle) -> Leafeon",
-        "Eevee -> Level up (location: Route 217) -> Glaceon",
-        "Eevee -> Level up (location: Twist Mountain) -> Glaceon",
-        "Eevee -> Level up (location: Frost Cavern) -> Glaceon",
+        "Eevee -> Level up (versions: Omega Ruby/Alpha Sapphire, location: Petalburg Woods, near_special_rock) -> Leafeon",
+        "Eevee -> Level up (versions: Sun/Moon, location: Lush Jungle, near_special_rock) -> Leafeon",
+        "Eevee -> Level up (versions: Diamond/Pearl, location: Route 217, near_special_rock) -> Glaceon",
+        "Eevee -> Level up (versions: Black/White, location: Twist Mountain, near_special_rock) -> Glaceon",
+        "Eevee -> Level up (versions: X/Y, location: Frost Cavern, near_special_rock) -> Glaceon",
         "Eevee -> Use item (item: Ice Stone) -> Glaceon",
-        "Eevee -> Level up (location: Shoal Cave) -> Glaceon",
-        "Eevee -> Level up (location: Mount Lanakila) -> Glaceon",
-        "Eevee -> Level up (known_move_type: Fairy, min_affection: 2) -> Sylveon",
+        "Eevee -> Level up (versions: Omega Ruby/Alpha Sapphire, location: Shoal Cave, near_special_rock) -> Glaceon",
+        "Eevee -> Level up (versions: Sun/Moon, location: Mount Lanakila, near_special_rock) -> Glaceon",
+        "Eevee -> Level up (versions: X/Y, known_move_type: Fairy, min_affection: 2) -> Sylveon",
         "Eevee -> Level up (known_move_type: Fairy, min_happiness: 160) -> Sylveon",
       ],
     ];
@@ -312,19 +263,19 @@ mod tests {
       "MON -> use-item (item: fire-stone) -> MON",
       "MON -> level-up (min_happiness: 160, time_of_day: day) -> MON",
       "MON -> level-up (min_happiness: 160, time_of_day: night) -> MON",
-      "MON -> level-up (location: eterna-forest) -> MON",
-      "MON -> level-up (location: pinwheel-forest) -> MON",
-      "MON -> level-up (location: kalos-route-20) -> MON",
+      "MON -> level-up (versions: diamond/pearl, location: eterna-forest, near_special_rock) -> MON",
+      "MON -> level-up (versions: black/white, location: pinwheel-forest, near_special_rock) -> MON",
+      "MON -> level-up (versions: x/y, location: kalos-route-20, near_special_rock) -> MON",
       "MON -> use-item (item: leaf-stone) -> MON",
-      "MON -> level-up (location: petalburg-woods) -> MON",
-      "MON -> level-up (location: lush-jungle) -> MON",
-      "MON -> level-up (location: sinnoh-route-217) -> MON",
-      "MON -> level-up (location: twist-mountain) -> MON",
-      "MON -> level-up (location: frost-cavern) -> MON",
+      "MON -> level-up (versions: omega-ruby/alpha-sapphire, location: petalburg-woods, near_special_rock) -> MON",
+      "MON -> level-up (versions: sun/moon, location: lush-jungle, near_special_rock) -> MON",
+      "MON -> level-up (versions: diamond/pearl, location: sinnoh-route-217, near_special_rock) -> MON",
+      "MON -> level-up (versions: black/white, location: twist-mountain, near_special_rock) -> MON",
+      "MON -> level-up (versions: x/y, location: frost-cavern, near_special_rock) -> MON",
       "MON -> use-item (item: ice-stone) -> MON",
-      "MON -> level-up (location: shoal-cave) -> MON",
-      "MON -> level-up (location: mount-lanakila) -> MON",
-      "MON -> level-up (known_move_type: fairy, min_affection: 2) -> MON",
+      "MON -> level-up (versions: omega-ruby/alpha-sapphire, location: shoal-cave, near_special_rock) -> MON",
+      "MON -> level-up (versions: sun/moon, location: mount-lanakila, near_special_rock) -> MON",
+      "MON -> level-up (versions: x/y, known_move_type: fairy, min_affection: 2) -> MON",
       "MON -> level-up (known_move_type: fairy, min_happiness: 160) -> MON",
     ];
 
@@ -350,19 +301,19 @@ mod tests {
       "Eevee -> use-item (item: Piedra Fuego) -> Flareon",
       "Eevee -> level-up (min_happiness: 160, time_of_day: day) -> Espeon",
       "Eevee -> level-up (min_happiness: 160, time_of_day: night) -> Umbreon",
-      "Eevee -> level-up (location: eterna-forest) -> Leafeon",
-      "Eevee -> level-up (location: pinwheel-forest) -> Leafeon",
-      "Eevee -> level-up (location: Ruta 20) -> Leafeon",
+      "Eevee -> level-up (versions: Diamante/Perla, location: eterna-forest, near_special_rock) -> Leafeon",
+      "Eevee -> level-up (versions: Negro/Blanco, location: pinwheel-forest, near_special_rock) -> Leafeon",
+      "Eevee -> level-up (versions: X/Y, location: Ruta 20, near_special_rock) -> Leafeon",
       "Eevee -> use-item (item: Piedra Hoja) -> Leafeon",
-      "Eevee -> level-up (location: Bosque Petalia) -> Leafeon",
-      "Eevee -> level-up (location: Jungla Umbría) -> Leafeon",
-      "Eevee -> level-up (location: sinnoh-route-217) -> Glaceon",
-      "Eevee -> level-up (location: twist-mountain) -> Glaceon",
-      "Eevee -> level-up (location: Gruta Helada) -> Glaceon",
+      "Eevee -> level-up (versions: Rubí Omega/Zafiro Alfa, location: Bosque Petalia, near_special_rock) -> Leafeon",
+      "Eevee -> level-up (versions: Sol/Luna, location: Jungla Umbría, near_special_rock) -> Leafeon",
+      "Eevee -> level-up (versions: Diamante/Perla, location: sinnoh-route-217, near_special_rock) -> Glaceon",
+      "Eevee -> level-up (versions: Negro/Blanco, location: twist-mountain, near_special_rock) -> Glaceon",
+      "Eevee -> level-up (versions: X/Y, location: Gruta Helada, near_special_rock) -> Glaceon",
       "Eevee -> use-item (item: Piedra Hielo) -> Glaceon",
-      "Eevee -> level-up (location: Cueva Cardumen) -> Glaceon",
-      "Eevee -> level-up (location: Monte Lanakila) -> Glaceon",
-      "Eevee -> level-up (known_move_type: Hada, min_affection: 2) -> Sylveon",
+      "Eevee -> level-up (versions: Rubí Omega/Zafiro Alfa, location: Cueva Cardumen, near_special_rock) -> Glaceon",
+      "Eevee -> level-up (versions: Sol/Luna, location: Monte Lanakila, near_special_rock) -> Glaceon",
+      "Eevee -> level-up (versions: X/Y, known_move_type: Hada, min_affection: 2) -> Sylveon",
       "Eevee -> level-up (known_move_type: Hada, min_happiness: 160) -> Sylveon",
     ];
 
@@ -388,33 +339,12 @@ mod tests {
       "Eevee -> Use item (item: Fire Stone) -> Flareon",
       "Eevee -> Level up (min_happiness: 160, time_of_day: day) -> Espeon",
       "Eevee -> Level up (min_happiness: 160, time_of_day: night) -> Umbreon",
-      "Eevee -> Level up (location: Lush Jungle) -> Leafeon",
-      "Eevee -> Level up (location: Mount Lanakila) -> Glaceon",
+      "Eevee -> Use item (item: Leaf Stone) -> Leafeon",
+      "Eevee -> Use item (item: Ice Stone) -> Glaceon",
       "Eevee -> Level up (known_move_type: Fairy, min_happiness: 160) -> Sylveon",
     ];
 
     let pokemon = String::from("Eevee");
-    let fast = false;
-    let lang = LanguageId::En;
-    let secret = false;
-    let all = false;
-
-    match print_evolutions(&client, &pokemon, fast, lang, secret, all).await {
-      Ok(res) => assert_eq!(res, success),
-      Err(err) => panic!("{}", err.render()),
-    }
-  }
-
-  #[tokio::test]
-  async fn test_evolutions_exceptions() {
-    let client = RustemonClient::default();
-
-    let success = vec![
-      "Farfetch’d",
-      "Farfetch’d -> Land three critical hits in a battle -> Sirfetch’d",
-    ];
-
-    let pokemon = String::from("Farfetchd");
     let fast = false;
     let lang = LanguageId::En;
     let secret = false;
@@ -432,7 +362,7 @@ mod tests {
 
     let success = vec![
       "Rattata -> Level up (min_level: 20) -> Raticate",
-      "Rattata -> Level up (min_level: 20, time_of_day: night) -> Raticate",
+      "Alolan Rattata -> Level up (min_level: 20, time_of_day: night) -> Alolan Raticate",
     ];
 
     let pokemon = String::from("Rattata");
