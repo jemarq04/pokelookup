@@ -3,12 +3,13 @@ name: CI
 on:
   pull_request:
     paths:
-      - 'src/**'
+      - "src/**"
   push:
     branches:
       - main
+      - dev
     paths:
-      - 'src/**'
+      - "src/**"
   workflow_dispatch:
   merge_group:
 
