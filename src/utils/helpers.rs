@@ -121,7 +121,7 @@ pub async fn get_evolution_name(
   secret: bool,
 ) -> String {
   if secret {
-    String::from("???")
+    String::from("MON")
   } else if fast {
     species.name.clone()
   } else {
