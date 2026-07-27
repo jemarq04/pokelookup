@@ -86,7 +86,7 @@ pub async fn print_encounters(
                 }
               ));
             }
-            temp_details.push(String::from(""));
+            //temp_details.push(String::from(""));
 
             encounter_names.push(temp_details.join("\n"));
           }
