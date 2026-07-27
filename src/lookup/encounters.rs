@@ -76,9 +76,15 @@ pub async fn print_encounters(
               }
             }
 
-            // TODO: Get prose
             for method in encounter_methods.iter() {
-              temp_details.push(format!("   * {}", method.name.clone()));
+              temp_details.push(format!(
+                "   * {}",
+                if !fast {
+                  get_name!(method, client, lang.to_string())
+                } else {
+                  method.name.clone()
+                }
+              ));
             }
             temp_details.push(String::from(""));
 
