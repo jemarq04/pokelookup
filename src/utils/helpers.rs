@@ -326,30 +326,6 @@ pub async fn get_evolution_details(
     ));
   }
 
-  // Check base form
-  if let Some(resource) = &details.base_form {
-    result.push(format!(
-      "base_form: {}",
-      if !fast {
-        get_pokemon_name(client, &resource.follow(client).await.unwrap(), lang).await
-      } else {
-        resource.name.clone()
-      },
-    ));
-  }
-
-  // Check evolved form
-  if let Some(resource) = &details.evolved_form {
-    result.push(format!(
-      "evolved_form: {}",
-      if !fast {
-        get_pokemon_name(client, &resource.follow(client).await.unwrap(), lang).await
-      } else {
-        resource.name.clone()
-      },
-    ));
-  }
-
   // Check minimum move count
   if let Some(val) = &details.min_move_count {
     result.push(format!("min_move_count: {val}"));
