@@ -1,13 +1,13 @@
 build:
 	cargo build
 
-full-build:
+build-full:
 	cargo build --all-features
 
 test:
 	cargo test
 
-full-test:
+test-full:
 	cargo test --all-features
 
 lint:
