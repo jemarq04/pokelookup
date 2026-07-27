@@ -4,6 +4,12 @@ build:
 build-full:
 	cargo build --all-features
 
+install:
+	cargo install --path .
+
+install-full:
+	cargo install --all-features --path .
+
 clean:
 	cargo clean
 
