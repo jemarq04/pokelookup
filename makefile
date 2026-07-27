@@ -4,6 +4,9 @@ build:
 build-full:
 	cargo build --all-features
 
+clean:
+	cargo clean
+
 test:
 	cargo test
 
