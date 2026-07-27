@@ -19,7 +19,22 @@ help finding the needed identifier.
 
 ### Available subcommands
 
-WIP
+This package offers lots of quick look-up features for Pokemon information, provided from PokeAPI. A list of the available subcommands for
+the package are provided below, with the `web` subcommand provided in the `web` feature of the crate.
+
+```
+Commands:
+  list        Look up the varieties of a given pokemon
+  types       Look up the type(s) of a given pokemon
+  abilities   Look up the abilities of a given pokemon
+  moves       Look up the level-up moveset of a given pokemon
+  eggs        Look up the egg groups of a given pokemon species
+  genders     Look up the gender ratio of a given pokemon species
+  encounters  Look up the encounters for a given pokemon and version
+  evolutions  Look up evolution chain for a given pokemon species
+  matchups    Look up the type weaknesses/resistances for given type(s)
+  web         Open web pages for a given endpoint. A valid endpoint includes pokemon, abilities, items, and more
+```
 
 ## Caching
 
