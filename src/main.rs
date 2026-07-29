@@ -46,13 +46,7 @@ async fn main() {
     Command::ListCmd(args) => lookup::print_varieties(&client, args).await,
     Command::TypeCmd(args) => lookup::print_types(&client, args).await,
     Command::AbilityCmd(args) => lookup::print_abilities(&client, args).await,
-    Command::MoveCmd {
-      pokemon,
-      fast,
-      lang,
-      vgroup,
-      level,
-    } => lookup::print_moves(&client, &pokemon, fast, lang, vgroup, level).await,
+    Command::MoveCmd(args) => lookup::print_moves(&client, args).await,
     Command::EggCmd {
       pokemon,
       fast,

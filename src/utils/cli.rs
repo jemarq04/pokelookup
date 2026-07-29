@@ -65,30 +65,7 @@ pub enum Command {
     about = "Look up the level-up moveset of a given pokemon",
     long_about
   )]
-  MoveCmd {
-    #[arg(help = "name of pokemon")]
-    pokemon: String,
-
-    #[arg(short, long, help = "skip API requests for formatted names")]
-    fast: bool,
-
-    #[arg(value_enum,
-      short = 'L',
-      long,
-      value_name = "LANGUAGE",
-      default_value_t = LanguageId::En,
-      hide_possible_values=true,
-      help = "language ID for API requests for formatted names"
-    )]
-    lang: LanguageId,
-
-    #[arg(value_enum, short, long, default_value_t=VersionGroup::ScarletViolet,
-            hide_possible_values=true, help="version group name")]
-    vgroup: VersionGroup,
-
-    #[arg(short, long, help = "request default moveset at given level")]
-    level: Option<i64>,
-  },
+  MoveCmd(MoveArgs),
 
   /// Look up the egg groups of a given pokemon species.
   #[command(name = "eggs", long_about)]
