@@ -4,16 +4,16 @@ mod utils;
 use clap::Parser;
 use rustemon::client::RustemonClient;
 use std::{fs::create_dir, path::Path};
-use utils::cli::{Args, SubArgs, get_appname};
+use utils::cli::{Cli, Command, get_appname};
 
 #[cfg(feature = "web")]
 use clap::error::ErrorKind;
 #[cfg(feature = "web")]
-use utils::{cli, cli::DexMode};
+use utils::{args::DexMode, cli};
 
 #[tokio::main]
 async fn main() {
-  let mut args = Args::parse();
+  let mut args = Cli::parse();
 
   // Create cache directory for API calls
   args.cache_dir = match args.cache_dir {
@@ -43,87 +43,28 @@ async fn main() {
 
   // Call the appropriate subcommand for results
   let result = match args.command {
-    SubArgs::ListCmd {
-      pokemon,
-      fast,
-      lang,
-    } => lookup::print_varieties(&client, &pokemon, fast, lang).await,
-    SubArgs::TypeCmd {
-      pokemon,
-      fast,
-      generation,
-      lang,
-      recursive,
-    } => lookup::print_types(&client, &pokemon, generation, fast, lang, recursive).await,
-    SubArgs::AbilityCmd {
-      pokemon,
-      fast,
-      lang,
-      recursive,
-    } => lookup::print_abilities(&client, &pokemon, fast, lang, recursive).await,
-    SubArgs::MoveCmd {
-      pokemon,
-      fast,
-      lang,
-      vgroup,
-      level,
-    } => lookup::print_moves(&client, &pokemon, fast, lang, vgroup, level).await,
-    SubArgs::EggCmd {
-      pokemon,
-      fast,
-      lang,
-    } => lookup::print_eggs(&client, &pokemon, fast, lang).await,
-    SubArgs::GenderCmd {
-      pokemon,
-      fast,
-      lang,
-    } => lookup::print_genders(&client, &pokemon, fast, lang).await,
-    SubArgs::EncounterCmd {
-      version,
-      pokemon,
-      fast,
-      lang,
-      recursive,
-      condensed,
-      include_dlcs,
-    } => {
-      lookup::print_encounters(
-        &client, version, &pokemon, fast, lang, recursive, condensed, include_dlcs,
-      )
-      .await
-    },
-    SubArgs::EvolutionCmd {
-      pokemon,
-      fast,
-      lang,
-      secret,
-      all,
-    } => lookup::print_evolutions(&client, &pokemon, fast, lang, secret, all).await,
-    SubArgs::MatchupCmd {
-      primary,
-      secondary,
-      list,
-      fast,
-      lang,
-    } => lookup::print_matchups(&client, primary, secondary, list, fast, lang).await,
+    Command::ListCmd(args) => lookup::print_varieties(&client, args).await,
+    Command::TypeCmd(args) => lookup::print_types(&client, args).await,
+    Command::AbilityCmd(args) => lookup::print_abilities(&client, args).await,
+    Command::MoveCmd(args) => lookup::print_moves(&client, args).await,
+    Command::EggCmd(args) => lookup::print_eggs(&client, args).await,
+    Command::GenderCmd(args) => lookup::print_genders(&client, args).await,
+    Command::EncounterCmd(args) => lookup::print_encounters(&client, args).await,
+    Command::EvolutionCmd(args) => lookup::print_evolutions(&client, args).await,
+    Command::MatchupCmd(args) => lookup::print_matchups(&client, args).await,
     #[cfg(feature = "web")]
-    SubArgs::WebCmd {
-      endpoint,
-      generation,
-      area,
-      quiet,
-    } => {
-      let url = match endpoint.get_mode() {
-        DexMode::Pokedex(name) => lookup::dex::open_pokedex(name, generation),
-        DexMode::Pokearth(name) => lookup::dex::open_pokearth(name, area, generation),
-        DexMode::Attackdex(name) => lookup::dex::open_attackdex(name, generation),
+    Command::WebCmd(args) => {
+      let url = match args.endpoint.get_mode() {
+        DexMode::Pokedex(name) => lookup::dex::open_pokedex(name, args.generation),
+        DexMode::Pokearth(name) => lookup::dex::open_pokearth(name, args.area, args.generation),
+        DexMode::Attackdex(name) => lookup::dex::open_attackdex(name, args.generation),
         DexMode::Abilitydex(name) => lookup::dex::open_abilitydex(name),
         DexMode::Itemdex(name) => lookup::dex::open_itemdex(name),
       };
       match url {
         Ok(url) => match open::that(&url) {
           Ok(_) => {
-            if quiet {
+            if args.quiet {
               return;
             }
             Ok(svec!["Opened page successfully."])

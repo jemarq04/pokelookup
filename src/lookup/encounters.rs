@@ -1,6 +1,7 @@
 use crate::get_name;
+use crate::utils::args::EncounterArgs;
 use crate::utils::cli;
-use crate::utils::enums::{LanguageId, Version};
+use crate::utils::enums::Version;
 use crate::utils::helpers;
 use clap::error::ErrorKind;
 use rustemon::Follow;
@@ -9,13 +10,7 @@ use rustemon::model::encounters::EncounterMethod;
 
 pub async fn print_encounters(
   client: &RustemonClient,
-  version: Version,
-  pokemon: &str,
-  fast: bool,
-  lang: LanguageId,
-  recursive: bool,
-  condensed: bool,
-  include_dlcs: bool,
+  args: EncounterArgs,
 ) -> Result<Vec<String>, clap::Error> {
   // Determine allowed versions
   let sword_versions = vec![
@@ -39,29 +34,31 @@ pub async fn print_encounters(
     Version::TheIndigoDiskViolet,
   ];
 
-  let mut versions = vec![version];
-  if include_dlcs {
-    if sword_versions.contains(&version) {
+  let mut versions = vec![args.version];
+  if args.with_dlc {
+    if sword_versions.contains(&args.version) {
       versions = sword_versions;
-    } else if shield_versions.contains(&version) {
+    } else if shield_versions.contains(&args.version) {
       versions = shield_versions;
-    } else if scarlet_versions.contains(&version) {
+    } else if scarlet_versions.contains(&args.version) {
       versions = scarlet_versions;
-    } else if violet_versions.contains(&version) {
+    } else if violet_versions.contains(&args.version) {
       versions = violet_versions;
     }
   }
 
   // Create pokemon resources
-  let resources = match helpers::get_pokemon_from_chain(client, pokemon, recursive).await {
+  let resources = match helpers::get_pokemon_from_chain(client, &args.pokemon, args.recursive).await
+  {
     Ok(x) => x,
     Err(_) => {
       let valid = cli::VALID;
       let err = cli::error(
         ErrorKind::InvalidValue,
         format!(
-          "invalid pokemon: {pokemon}\n\n{valid}tip:{valid:#} try running '{} list {pokemon}'",
-          cli::get_appname()
+          "invalid pokemon: {1}\n\n{valid}tip:{valid:#} try running '{} list {}'",
+          cli::get_appname(),
+          args.pokemon,
         ),
       );
       return Err(err);
@@ -93,12 +90,12 @@ pub async fn print_encounters(
           .iter()
           .any(|vers| vers.to_string() == det.version.name)
         {
-          let name = if !fast {
-            get_name!(follow enc.location_area, client, lang.to_string())
+          let name = if !args.fast {
+            get_name!(follow enc.location_area, client, args.lang.to_string())
           } else {
             enc.location_area.name.clone()
           };
-          if condensed {
+          if args.condensed {
             encounter_names.push(name);
           } else {
             let mut temp_details = Vec::new();
@@ -118,8 +115,8 @@ pub async fn print_encounters(
             for method in encounter_methods.iter() {
               temp_details.push(format!(
                 "   * {}",
-                if !fast {
-                  get_name!(method, client, lang.to_string())
+                if !args.fast {
+                  get_name!(method, client, args.lang.to_string())
                 } else {
                   method.name.clone()
                 }
@@ -143,8 +140,8 @@ pub async fn print_encounters(
     // Return location areas
     result.push(format!(
       "{}:",
-      if !fast {
-        helpers::get_pokemon_name(client, mon_resource, &lang.to_string()).await
+      if !args.fast {
+        helpers::get_pokemon_name(client, mon_resource, &args.lang.to_string()).await
       } else {
         mon_resource.name.clone()
       }
@@ -160,6 +157,7 @@ pub async fn print_encounters(
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::utils::enums::LanguageId;
 
   #[tokio::test]
   async fn test_encounters() {
@@ -193,19 +191,17 @@ mod tests {
     ];
 
     for (idx, vals) in success.into_iter().enumerate() {
-      let version = Version::Firered;
-      let pokemon = String::from("machop");
-      let fast = idx == 0;
-      let lang = LanguageId::En;
-      let recursive = false;
-      let condensed = true;
-      let include_dlcs = false;
+      let args = EncounterArgs {
+        version: Version::Firered,
+        pokemon: String::from("machop"),
+        fast: idx == 0,
+        lang: LanguageId::En,
+        recursive: false,
+        condensed: true,
+        with_dlc: false,
+      };
 
-      match print_encounters(
-        &client, version, &pokemon, fast, lang, recursive, condensed, include_dlcs,
-      )
-      .await
-      {
+      match print_encounters(&client, args).await {
         Ok(res) => assert_eq!(res, vals),
         Err(err) => panic!("{}", err.render()),
       }
@@ -244,19 +240,17 @@ mod tests {
       " - berry-forest-area",
     ];
 
-    let version = Version::Firered;
-    let pokemon = String::from("goldeen");
-    let fast = true;
-    let lang = LanguageId::En;
-    let recursive = true;
-    let condensed = true;
-    let include_dlcs = false;
+    let args = EncounterArgs {
+      version: Version::Firered,
+      pokemon: String::from("goldeen"),
+      fast: true,
+      lang: LanguageId::En,
+      recursive: true,
+      condensed: true,
+      with_dlc: false,
+    };
 
-    match print_encounters(
-      &client, version, &pokemon, fast, lang, recursive, condensed, include_dlcs,
-    )
-    .await
-    {
+    match print_encounters(&client, args).await {
       Ok(res) => assert_eq!(res, success),
       Err(err) => panic!("{}", err.render()),
     }
@@ -287,19 +281,17 @@ mod tests {
       " - stony-wilderness-max-den-a\n   * max-raid",
     ];
 
-    let version = Version::Sword;
-    let pokemon = String::from("skwovet");
-    let fast = true;
-    let lang = LanguageId::En;
-    let recursive = false;
-    let condensed = false;
-    let include_dlcs = false;
+    let args = EncounterArgs {
+      version: Version::Sword,
+      pokemon: String::from("skwovet"),
+      fast: true,
+      lang: LanguageId::En,
+      recursive: false,
+      condensed: false,
+      with_dlc: false,
+    };
 
-    match print_encounters(
-      &client, version, &pokemon, fast, lang, recursive, condensed, include_dlcs,
-    )
-    .await
-    {
+    match print_encounters(&client, args).await {
       Ok(res) => assert_eq!(res, success),
       Err(err) => panic!("{}", err.render()),
     }

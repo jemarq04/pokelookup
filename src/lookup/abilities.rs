@@ -1,6 +1,6 @@
 use crate::get_name;
+use crate::utils::args::AbilityArgs;
 use crate::utils::cli;
-use crate::utils::enums::LanguageId;
 use crate::utils::helpers;
 use clap::error::ErrorKind;
 use futures::future;
@@ -9,21 +9,20 @@ use rustemon::client::RustemonClient;
 
 pub async fn print_abilities(
   client: &RustemonClient,
-  pokemon: &str,
-  fast: bool,
-  lang: LanguageId,
-  recursive: bool,
+  args: AbilityArgs,
 ) -> Result<Vec<String>, clap::Error> {
   // Create pokemon resources
-  let resources = match helpers::get_pokemon_from_chain(client, pokemon, recursive).await {
+  let resources = match helpers::get_pokemon_from_chain(client, &args.pokemon, args.recursive).await
+  {
     Ok(x) => x,
     Err(_) => {
       let valid = cli::VALID;
       let err = cli::error(
         ErrorKind::InvalidValue,
         format!(
-          "invalid pokemon: {pokemon}\n\n{valid}tip:{valid:#} try running '{} list {pokemon}'",
-          cli::get_appname()
+          "invalid pokemon: {1}\n\n{valid}tip:{valid:#} try running '{} list {}'",
+          cli::get_appname(),
+          args.pokemon,
         ),
       );
       return Err(err);
@@ -66,8 +65,9 @@ pub async fn print_abilities(
     // Get ability names
     let mut names = Vec::new();
     for ab in abilities.into_iter() {
-      names.push(if !fast {
-        get_name!(ab.ability, client, lang.to_string()) + if ab.hidden { " (Hidden)" } else { "" }
+      names.push(if !args.fast {
+        get_name!(ab.ability, client, args.lang.to_string())
+          + if ab.hidden { " (Hidden)" } else { "" }
       } else {
         ab.ability.name.clone() + if ab.hidden { " (hidden)" } else { "" }
       });
@@ -76,8 +76,8 @@ pub async fn print_abilities(
     // Return abilities
     result.push(format!(
       "{}:",
-      if !fast {
-        helpers::get_pokemon_name(client, mon_resource, &lang.to_string()).await
+      if !args.fast {
+        helpers::get_pokemon_name(client, mon_resource, &args.lang.to_string()).await
       } else {
         mon_resource.name.clone()
       }
@@ -94,6 +94,7 @@ pub async fn print_abilities(
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::utils::enums::LanguageId;
 
   #[tokio::test]
   async fn test_abilities() {
@@ -105,11 +106,14 @@ mod tests {
       .collect();
 
     for fast in [false, true].into_iter() {
-      let pokemon = String::from("toxel");
-      let lang = LanguageId::En;
-      let recursive = false;
+      let args = AbilityArgs {
+        pokemon: String::from("toxel"),
+        fast,
+        lang: LanguageId::En,
+        recursive: false,
+      };
 
-      match print_abilities(&client, &pokemon, fast, lang, recursive).await {
+      match print_abilities(&client, args).await {
         Ok(s) => assert_eq!(
           s,
           if fast {
@@ -132,12 +136,14 @@ mod tests {
       " 1. Intimidate", " 2. Frisk", " 3. Sap Sipper (Hidden)",
     ];
 
-    let pokemon = String::from("stantler");
-    let fast = false;
-    let lang = LanguageId::En;
-    let recursive = true;
+    let args = AbilityArgs {
+      pokemon: String::from("stantler"),
+      fast: false,
+      lang: LanguageId::En,
+      recursive: true,
+    };
 
-    match print_abilities(&client, &pokemon, fast, lang, recursive).await {
+    match print_abilities(&client, args).await {
       Ok(s) => assert_eq!(s, success),
       Err(err) => panic!("{}", err.render()),
     }
