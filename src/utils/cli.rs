@@ -1,6 +1,6 @@
 use crate::utils::enums::*;
 use clap::builder::styling::{AnsiColor, Effects, Style, Styles};
-use clap::{CommandFactory, Parser, Subcommand};
+use clap::{Args, CommandFactory, Parser, Subcommand};
 
 pub const HEADER: Style = AnsiColor::Green.on_default().effects(Effects::BOLD);
 pub const USAGE: Style = AnsiColor::Green.on_default().effects(Effects::BOLD);
@@ -26,7 +26,7 @@ const CARGO_STYLING: Styles = Styles::styled()
 /// listed using the 'list' subcommand.
 #[derive(Parser, Debug)]
 #[command(version, long_about, styles=CARGO_STYLING)]
-pub struct Args {
+pub struct Cli {
   #[arg(
     long,
     value_name = "DIR",
@@ -35,11 +35,11 @@ pub struct Args {
   pub cache_dir: Option<std::path::PathBuf>,
 
   #[command(subcommand)]
-  pub command: SubArgs,
+  pub command: Command,
 }
 
 #[derive(Subcommand, Debug)]
-pub enum SubArgs {
+pub enum Command {
   /// Look up the varieties of a given pokemon.
   #[command(name = "list", long_about)]
   ListCmd {
@@ -301,7 +301,7 @@ pub enum SubArgs {
 }
 
 #[cfg(feature = "web")]
-#[derive(Debug, clap::Args)]
+#[derive(Args, Debug)]
 #[group(required = true, multiple = false)]
 pub struct Endpoints {
   #[arg(short, long, help_heading = "Endpoints", conflicts_with_all = ["area"], help = "name of pokemon")]
@@ -355,9 +355,9 @@ pub enum DexMode {
 }
 
 pub fn get_appname() -> String {
-  String::from(Args::command().get_name())
+  String::from(Cli::command().get_name())
 }
 
 pub fn error(kind: clap::error::ErrorKind, message: String) -> clap::Error {
-  Args::command().error(kind, message)
+  Cli::command().error(kind, message)
 }

@@ -4,7 +4,7 @@ mod utils;
 use clap::Parser;
 use rustemon::client::RustemonClient;
 use std::{fs::create_dir, path::Path};
-use utils::cli::{Args, SubArgs, get_appname};
+use utils::cli::{Cli, Command, get_appname};
 
 #[cfg(feature = "web")]
 use clap::error::ErrorKind;
@@ -13,7 +13,7 @@ use utils::{cli, cli::DexMode};
 
 #[tokio::main]
 async fn main() {
-  let mut args = Args::parse();
+  let mut args = Cli::parse();
 
   // Create cache directory for API calls
   args.cache_dir = match args.cache_dir {
@@ -43,42 +43,42 @@ async fn main() {
 
   // Call the appropriate subcommand for results
   let result = match args.command {
-    SubArgs::ListCmd {
+    Command::ListCmd {
       pokemon,
       fast,
       lang,
     } => lookup::print_varieties(&client, &pokemon, fast, lang).await,
-    SubArgs::TypeCmd {
+    Command::TypeCmd {
       pokemon,
       fast,
       generation,
       lang,
       recursive,
     } => lookup::print_types(&client, &pokemon, generation, fast, lang, recursive).await,
-    SubArgs::AbilityCmd {
+    Command::AbilityCmd {
       pokemon,
       fast,
       lang,
       recursive,
     } => lookup::print_abilities(&client, &pokemon, fast, lang, recursive).await,
-    SubArgs::MoveCmd {
+    Command::MoveCmd {
       pokemon,
       fast,
       lang,
       vgroup,
       level,
     } => lookup::print_moves(&client, &pokemon, fast, lang, vgroup, level).await,
-    SubArgs::EggCmd {
+    Command::EggCmd {
       pokemon,
       fast,
       lang,
     } => lookup::print_eggs(&client, &pokemon, fast, lang).await,
-    SubArgs::GenderCmd {
+    Command::GenderCmd {
       pokemon,
       fast,
       lang,
     } => lookup::print_genders(&client, &pokemon, fast, lang).await,
-    SubArgs::EncounterCmd {
+    Command::EncounterCmd {
       version,
       pokemon,
       fast,
@@ -88,14 +88,14 @@ async fn main() {
     } => {
       lookup::print_encounters(&client, version, &pokemon, fast, lang, recursive, condensed).await
     },
-    SubArgs::EvolutionCmd {
+    Command::EvolutionCmd {
       pokemon,
       fast,
       lang,
       secret,
       all,
     } => lookup::print_evolutions(&client, &pokemon, fast, lang, secret, all).await,
-    SubArgs::MatchupCmd {
+    Command::MatchupCmd {
       primary,
       secondary,
       list,
@@ -103,7 +103,7 @@ async fn main() {
       lang,
     } => lookup::print_matchups(&client, primary, secondary, list, fast, lang).await,
     #[cfg(feature = "web")]
-    SubArgs::WebCmd {
+    Command::WebCmd {
       endpoint,
       generation,
       area,
