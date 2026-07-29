@@ -51,13 +51,7 @@ async fn main() {
     Command::GenderCmd(args) => lookup::print_genders(&client, args).await,
     Command::EncounterCmd(args) => lookup::print_encounters(&client, args).await,
     Command::EvolutionCmd(args) => lookup::print_evolutions(&client, args).await,
-    Command::MatchupCmd {
-      primary,
-      secondary,
-      list,
-      fast,
-      lang,
-    } => lookup::print_matchups(&client, primary, secondary, list, fast, lang).await,
+    Command::MatchupCmd(args) => lookup::print_matchups(&client, args).await,
     #[cfg(feature = "web")]
     Command::WebCmd {
       endpoint,

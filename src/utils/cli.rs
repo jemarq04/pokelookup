@@ -85,39 +85,7 @@ pub enum Command {
 
   /// Look up the type weaknesses/resistances for given type(s).
   #[command(name = "matchups", long_about)]
-  MatchupCmd {
-    #[arg(
-      value_enum,
-      hide_possible_values = true,
-      value_name = "TYPE",
-      help = "name of type"
-    )]
-    primary: Type,
-
-    #[arg(
-      value_enum,
-      hide_possible_values = true,
-      value_name = "TYPE",
-      help = "name of optional secondary type"
-    )]
-    secondary: Option<Type>,
-
-    #[arg(short, long, help = "print output as a list instead of a table")]
-    list: bool,
-
-    #[arg(short, long, help = "skip API requests for formatted names")]
-    fast: bool,
-
-    #[arg(value_enum,
-      short = 'L',
-      long,
-      value_name = "LANGUAGE",
-      default_value_t = LanguageId::En,
-      hide_possible_values=true,
-      help = "language ID for API requests for formatted names"
-    )]
-    lang: LanguageId,
-  },
+  MatchupCmd(MatchupArgs),
 
   /// Open web pages for a given endpoint. A valid endpoint includes pokemon, abilities, items, and more.
   #[cfg(feature = "web")]

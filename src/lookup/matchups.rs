@@ -1,6 +1,5 @@
 use crate::get_name;
-use crate::utils::cli;
-use crate::utils::enums::{LanguageId, Type};
+use crate::utils::cli::{self, MatchupArgs};
 use clap::error::ErrorKind;
 use itertools::izip;
 use rustemon::Follow;
@@ -9,23 +8,19 @@ use rustemon::pokemon::*;
 
 pub async fn print_matchups(
   client: &RustemonClient,
-  primary: Type,
-  secondary: Option<Type>,
-  list: bool,
-  fast: bool,
-  lang: LanguageId,
+  args: MatchupArgs,
 ) -> Result<Vec<String>, clap::Error> {
   // Get type resources
-  let primary = match type_::get_by_name(&primary.to_string(), client).await {
+  let primary = match type_::get_by_name(&args.primary.to_string(), client).await {
     Ok(x) => x,
     Err(_) => {
       return Err(cli::error(
         ErrorKind::InvalidValue,
-        format!("API error: could not retrieve type {primary}"),
+        format!("API error: could not retrieve type {}", args.primary),
       ));
     },
   };
-  let secondary = match secondary {
+  let secondary = match args.secondary {
     Some(t) => match type_::get_by_name(&t.to_string(), client).await {
       Ok(x) => Some(x),
       Err(_) => {
@@ -46,30 +41,30 @@ pub async fn print_matchups(
   let mut quad_damage_from = Vec::new();
 
   for other_type in primary.damage_relations.no_damage_from.iter() {
-    no_damage_from.push(if !fast {
-      get_name!(follow other_type, client, lang.to_string())
+    no_damage_from.push(if !args.fast {
+      get_name!(follow other_type, client, args.lang.to_string())
     } else {
       other_type.name.clone()
     });
   }
   for other_type in primary.damage_relations.half_damage_from.iter() {
-    half_damage_from.push(if !fast {
-      get_name!(follow other_type, client, lang.to_string())
+    half_damage_from.push(if !args.fast {
+      get_name!(follow other_type, client, args.lang.to_string())
     } else {
       other_type.name.clone()
     });
   }
   for other_type in primary.damage_relations.double_damage_from.iter() {
-    double_damage_from.push(if !fast {
-      get_name!(follow other_type, client, lang.to_string())
+    double_damage_from.push(if !args.fast {
+      get_name!(follow other_type, client, args.lang.to_string())
     } else {
       other_type.name.clone()
     });
   }
   if let Some(ref second) = secondary {
     for other_type in second.damage_relations.no_damage_from.iter() {
-      let name = if !fast {
-        get_name!(follow other_type, client, lang.to_string())
+      let name = if !args.fast {
+        get_name!(follow other_type, client, args.lang.to_string())
       } else {
         other_type.name.clone()
       };
@@ -84,8 +79,8 @@ pub async fn print_matchups(
       }
     }
     for other_type in second.damage_relations.half_damage_from.iter() {
-      let name = if !fast {
-        get_name!(follow other_type, client, lang.to_string())
+      let name = if !args.fast {
+        get_name!(follow other_type, client, args.lang.to_string())
       } else {
         other_type.name.clone()
       };
@@ -99,8 +94,8 @@ pub async fn print_matchups(
       }
     }
     for other_type in second.damage_relations.double_damage_from.iter() {
-      let name = if !fast {
-        get_name!(follow other_type, client, lang.to_string())
+      let name = if !args.fast {
+        get_name!(follow other_type, client, args.lang.to_string())
       } else {
         other_type.name.clone()
       };
@@ -142,7 +137,7 @@ pub async fn print_matchups(
   let mut result = Vec::new();
   match secondary {
     None => {
-      if !list {
+      if !args.list {
         result.push(format!("{:^12} {:^12} {:^12}", "*0", "*0.5", "*2"));
         result.push(format!("{:-<12} {:-<12} {:-<12}", "", "", ""));
         for (no_dmg, half_dmg, double_dmg) in
@@ -153,8 +148,8 @@ pub async fn print_matchups(
       } else {
         result.push(format!(
           "{}:",
-          if !fast {
-            get_name!(primary, client, lang.to_string())
+          if !args.fast {
+            get_name!(primary, client, args.lang.to_string())
           } else {
             primary.name.clone()
           },
@@ -198,7 +193,7 @@ pub async fn print_matchups(
       }
     },
     Some(second) => {
-      if !list {
+      if !args.list {
         result.push(format!(
           "{:^12} {:^12} {:^12} {:^12} {:^12}",
           "*0", "*0.25", "*0.5", "*2", "*4"
@@ -219,13 +214,13 @@ pub async fn print_matchups(
         result.push(format!(
           "{}:",
           [
-            if !fast {
-              get_name!(primary, client, lang.to_string())
+            if !args.fast {
+              get_name!(primary, client, args.lang.to_string())
             } else {
               primary.name.clone()
             },
-            if !fast {
-              get_name!(second, client, lang.to_string())
+            if !args.fast {
+              get_name!(second, client, args.lang.to_string())
             } else {
               second.name.clone()
             }
@@ -304,6 +299,7 @@ pub async fn print_matchups(
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::utils::enums::{LanguageId, Type};
 
   #[tokio::test]
   async fn test_matchups() {
@@ -317,13 +313,15 @@ mod tests {
       "             Dark                     ",
     ];
 
-    let primary = Type::Fairy;
-    let secondary = None;
-    let fast = false;
-    let lang = LanguageId::En;
-    let list = false;
+    let args = MatchupArgs {
+      primary: Type::Fairy,
+      secondary: None,
+      list: false,
+      fast: false,
+      lang: LanguageId::En,
+    };
 
-    match print_matchups(&client, primary, secondary, list, fast, lang).await {
+    match print_matchups(&client, args).await {
       Ok(res) => assert_eq!(res, success),
       Err(err) => panic!("{}", err.render()),
     }
@@ -342,13 +340,15 @@ mod tests {
       "                          Rock         Ice                      ",
     ];
 
-    let primary = Type::Electric;
-    let secondary = Some(Type::Ground);
-    let fast = false;
-    let lang = LanguageId::En;
-    let list = false;
+    let args = MatchupArgs {
+      primary: Type::Electric,
+      secondary: Some(Type::Ground),
+      list: false,
+      fast: false,
+      lang: LanguageId::En,
+    };
 
-    match print_matchups(&client, primary, secondary, list, fast, lang).await {
+    match print_matchups(&client, args).await {
       Ok(res) => assert_eq!(res, success),
       Err(err) => panic!("{}", err.render()),
     }
@@ -364,13 +364,15 @@ mod tests {
       "   * Psíquico", "   * Hielo", "   * Hada", "", " - 2x:", "   * Tierra", "   * Fuego",
     ];
 
-    let primary = Type::Fairy;
-    let secondary = Some(Type::Steel);
-    let fast = false;
-    let lang = LanguageId::Es;
-    let list = true;
+    let args = MatchupArgs {
+      primary: Type::Fairy,
+      secondary: Some(Type::Steel),
+      list: true,
+      fast: false,
+      lang: LanguageId::Es,
+    };
 
-    match print_matchups(&client, primary, secondary, list, fast, lang).await {
+    match print_matchups(&client, args).await {
       Ok(res) => assert_eq!(res, success),
       Err(err) => panic!("{}", err.render()),
     }
