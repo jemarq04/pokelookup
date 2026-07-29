@@ -5,38 +5,34 @@ use crate::utils::helpers;
 use clap::error::ErrorKind;
 use rustemon::Follow;
 use rustemon::client::RustemonClient;
-use rustemon::pokemon::*;
+use rustemon::pokemon::pokemon_species;
+use std::fmt::Write;
 
 pub async fn print_evolutions(
   client: &RustemonClient,
   args: EvolutionArgs,
 ) -> Result<Vec<String>, clap::Error> {
   // Create pokemon species resource
-  let species = match pokemon_species::get_by_name(&args.pokemon.replace(" ", "-"), client).await {
-    Ok(x) => x,
-    Err(_) => {
-      return Err(cli::error(
-        ErrorKind::InvalidValue,
-        format!("invalid pokemon species: {}", args.pokemon),
-      ));
-    },
+  let Ok(species) = pokemon_species::get_by_name(&args.pokemon.replace(' ', "-"), client).await
+  else {
+    return Err(cli::error(
+      ErrorKind::InvalidValue,
+      format!("invalid pokemon species: {}", args.pokemon),
+    ));
   };
 
   // Iterate over evolution chain, if present
   let mut result: Vec<String> = Vec::new();
   if let Some(chain_resource) = species.evolution_chain {
     // Get evolution chain resource
-    let chain = match chain_resource.follow(client).await {
-      Ok(x) => x,
-      Err(_) => {
-        return Err(cli::error(
-          ErrorKind::InvalidValue,
-          format!(
-            "API error: could not retrieve evolution chain for {}",
-            species.name,
-          ),
-        ));
-      },
+    let Ok(chain) = chain_resource.follow(client).await else {
+      return Err(cli::error(
+        ErrorKind::InvalidValue,
+        format!(
+          "API error: could not retrieve evolution chain for {}",
+          species.name,
+        ),
+      ));
     };
 
     if chain.chain.evolves_to.is_empty() {
@@ -53,7 +49,7 @@ pub async fn print_evolutions(
       );
     }
 
-    for evo1 in chain.chain.evolves_to.iter() {
+    for evo1 in &chain.chain.evolves_to {
       if evo1.evolution_details.is_empty() {
         // Unknown evolution detail
         result.push(format!(
@@ -76,7 +72,7 @@ pub async fn print_evolutions(
           .await,
         ));
       } else {
-        for details1 in evo1.evolution_details.iter() {
+        for details1 in &evo1.evolution_details {
           if !args.all && !details1.is_default {
             continue;
           }
@@ -96,10 +92,10 @@ pub async fn print_evolutions(
               )
               .await
             },
-            if !args.fast {
-              get_name!(follow details1.trigger, client, args.lang.to_string())
-            } else {
+            if args.fast {
               details1.trigger.name.clone()
+            } else {
+              get_name!(follow details1.trigger, client, args.lang.to_string())
             },
           ));
 
@@ -111,13 +107,11 @@ pub async fn print_evolutions(
           )
           .await
           {
-            result
-              .last_mut()
-              .unwrap()
-              .push_str(&format!(" ({details_str})"));
+            let _ = write!(result.last_mut().unwrap(), " ({details_str})");
           }
 
-          result.last_mut().unwrap().push_str(&format!(
+          let _ = write!(
+            result.last_mut().unwrap(),
             " -> {}",
             if let Some(evolved_form_resource) = &details1.evolved_form {
               let evolved_form = evolved_form_resource.follow(client).await.unwrap();
@@ -132,22 +126,22 @@ pub async fn print_evolutions(
               )
               .await
             }
-          ));
+          );
 
           // Check for second evolution
           let mut first_evo2 = true;
           let curr_steps = result.last().unwrap().clone();
-          for evo2 in evo1.evolves_to.iter() {
-            for details2 in evo2.evolution_details.iter() {
+          for evo2 in &evo1.evolves_to {
+            for details2 in &evo2.evolution_details {
               if !args.all && !details2.is_default {
                 continue;
               }
               let mut temp_steps: String = format!(
                 " -> {}",
-                if !args.fast {
-                  get_name!(follow details2.trigger, client, args.lang.to_string())
-                } else {
+                if args.fast {
                   details2.trigger.name.clone()
+                } else {
+                  get_name!(follow details2.trigger, client, args.lang.to_string())
                 }
               );
 
@@ -155,10 +149,11 @@ pub async fn print_evolutions(
                 helpers::get_evolution_details(client, details2, &args.lang.to_string(), args.fast)
                   .await
               {
-                temp_steps.push_str(&format!(" ({details_str})"));
+                let _ = write!(temp_steps, " ({details_str})");
               }
 
-              temp_steps.push_str(&format!(
+              let _ = write!(
+                temp_steps,
                 " -> {}",
                 if let Some(evolved_form_resource) = &details2.evolved_form {
                   let evolved_form = evolved_form_resource.follow(client).await.unwrap();
@@ -173,7 +168,7 @@ pub async fn print_evolutions(
                   )
                   .await
                 }
-              ));
+              );
 
               if first_evo2 {
                 result.last_mut().unwrap().push_str(&temp_steps);

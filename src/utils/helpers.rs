@@ -2,24 +2,24 @@ use crate::get_name;
 use futures::future;
 use rustemon::Follow;
 use rustemon::client::RustemonClient;
-use rustemon::pokemon::*;
+use rustemon::pokemon::{pokemon, pokemon_species};
 
 pub async fn get_pokemon_name(
   client: &RustemonClient,
   pokemon: &rustemon::model::pokemon::Pokemon,
   lang: &str,
 ) -> String {
-  let forms =
-    match future::try_join_all(pokemon.forms.iter().map(async |f| f.follow(client).await)).await {
-      Ok(x) => x,
-      Err(_) => return pokemon.name.clone(),
-    };
+  let Ok(forms) =
+    future::try_join_all(pokemon.forms.iter().map(async |f| f.follow(client).await)).await
+  else {
+    return pokemon.name.clone();
+  };
 
-  for form in forms.into_iter() {
+  for form in forms {
     if !form.is_default || form.names.is_empty() {
       continue;
     }
-    for n in form.names.iter() {
+    for n in &form.names {
       if let Ok(item) = n.language.follow(client).await
         && item.name == lang
       {
@@ -38,22 +38,19 @@ pub async fn get_pokemon_from_chain(
   recursive: bool,
 ) -> Result<Vec<rustemon::model::pokemon::Pokemon>, ()> {
   let mut result = Vec::new();
-  let pokemon = match pokemon::get_by_name(pokemon, client).await {
-    Ok(x) => x,
-    Err(_) => return Err(()),
+  let Ok(pokemon) = pokemon::get_by_name(pokemon, client).await else {
+    return Err(());
   };
 
   if recursive {
-    let species = match pokemon.species.follow(client).await {
-      Ok(x) => x,
-      Err(_) => return Err(()),
+    let Ok(species) = pokemon.species.follow(client).await else {
+      return Err(());
     };
     if let Some(chain) = species.evolution_chain {
-      let chain = match chain.follow(client).await {
-        Ok(x) => x.chain,
-        Err(_) => return Err(()),
+      let Ok(chain) = chain.follow(client).await else {
+        return Err(());
       };
-      if let Ok(x) = pokemon_species::get_by_name(&chain.species.name, client).await
+      if let Ok(x) = pokemon_species::get_by_name(&chain.chain.species.name, client).await
         && let Ok(y) = future::try_join_all(
           x.varieties
             .iter()
@@ -61,9 +58,11 @@ pub async fn get_pokemon_from_chain(
         )
         .await
       {
-        y.into_iter().for_each(|mon| result.push(mon));
+        for mon in y {
+          result.push(mon);
+        }
       }
-      for evo1 in chain.evolves_to.iter() {
+      for evo1 in &chain.chain.evolves_to {
         if let Ok(x) = pokemon_species::get_by_name(&evo1.species.name, client).await
           && let Ok(y) = future::try_join_all(
             x.varieties
@@ -72,9 +71,11 @@ pub async fn get_pokemon_from_chain(
           )
           .await
         {
-          y.into_iter().for_each(|mon| result.push(mon));
+          for mon in y {
+            result.push(mon);
+          }
         }
-        for evo2 in evo1.evolves_to.iter() {
+        for evo2 in &evo1.evolves_to {
           if let Ok(x) = pokemon_species::get_by_name(&evo2.species.name, client).await
             && let Ok(y) = future::try_join_all(
               x.varieties
@@ -83,7 +84,9 @@ pub async fn get_pokemon_from_chain(
             )
             .await
           {
-            y.into_iter().for_each(|mon| result.push(mon));
+            for mon in y {
+              result.push(mon);
+            }
           }
         }
       }
@@ -141,24 +144,24 @@ pub async fn get_evolution_details(
   if !details.is_default {
     let version_group = details.version_group.follow(client).await.unwrap();
     let mut versions = Vec::new();
-    for version_resource in version_group.versions.iter() {
-      versions.push(if !fast {
-        get_name!(follow version_resource, client, lang)
-      } else {
+    for version_resource in &version_group.versions {
+      versions.push(if fast {
         version_resource.name.clone()
+      } else {
+        get_name!(follow version_resource, client, lang)
       });
     }
-    result.push(format!("versions: {}", versions.join("/"),));
+    result.push(format!("versions: {}", versions.join("/")));
   }
 
   // Check item
   if let Some(resource) = &details.item {
     result.push(format!(
       "item: {}",
-      if !fast {
-        get_name!(follow resource, client, lang)
-      } else {
+      if fast {
         resource.name.clone()
+      } else {
+        get_name!(follow resource, client, lang)
       },
     ));
   }
@@ -167,27 +170,27 @@ pub async fn get_evolution_details(
   if let Some(resource) = &details.held_item {
     result.push(format!(
       "held_item: {}",
-      if !fast {
-        get_name!(follow resource, client, lang)
-      } else {
+      if fast {
         resource.name.clone()
+      } else {
+        get_name!(follow resource, client, lang)
       },
     ));
   }
 
   // Check gender
   if let Some(gender) = &details.gender {
-    result.push(format!("gender: {gender}"))
+    result.push(format!("gender: {gender}"));
   }
 
   // Check known move
   if let Some(resource) = &details.known_move {
     result.push(format!(
       "known_move: {}",
-      if !fast {
-        get_name!(follow resource, client, lang)
-      } else {
+      if fast {
         resource.name.clone()
+      } else {
+        get_name!(follow resource, client, lang)
       },
     ));
   }
@@ -196,10 +199,10 @@ pub async fn get_evolution_details(
   if let Some(resource) = &details.known_move_type {
     result.push(format!(
       "known_move_type: {}",
-      if !fast {
-        get_name!(follow resource, client, lang)
-      } else {
+      if fast {
         resource.name.clone()
+      } else {
+        get_name!(follow resource, client, lang)
       },
     ));
   }
@@ -208,10 +211,10 @@ pub async fn get_evolution_details(
   if let Some(resource) = &details.used_move {
     result.push(format!(
       "used_move: {}",
-      if !fast {
-        get_name!(follow resource, client, lang)
-      } else {
+      if fast {
         resource.name.clone()
+      } else {
+        get_name!(follow resource, client, lang)
       },
     ));
   }
@@ -220,10 +223,10 @@ pub async fn get_evolution_details(
   if let Some(resource) = &details.location {
     result.push(format!(
       "location: {}",
-      if !fast {
-        get_name!(follow resource, client, lang)
-      } else {
+      if fast {
         resource.name.clone()
+      } else {
+        get_name!(follow resource, client, lang)
       },
     ));
   }
@@ -267,10 +270,10 @@ pub async fn get_evolution_details(
   if let Some(resource) = &details.party_species {
     result.push(format!(
       "party_species: {}",
-      if !fast {
-        get_name!(follow resource, client, lang)
-      } else {
+      if fast {
         resource.name.clone()
+      } else {
+        get_name!(follow resource, client, lang)
       },
     ));
   }
@@ -279,10 +282,10 @@ pub async fn get_evolution_details(
   if let Some(resource) = &details.party_type {
     result.push(format!(
       "party_type: {}",
-      if !fast {
-        get_name!(follow resource, client, lang)
-      } else {
+      if fast {
         resource.name.clone()
+      } else {
+        get_name!(follow resource, client, lang)
       },
     ));
   }
@@ -301,10 +304,10 @@ pub async fn get_evolution_details(
   if let Some(resource) = &details.trade_species {
     result.push(format!(
       "trade_species: {}",
-      if !fast {
-        get_name!(follow resource, client, lang)
-      } else {
+      if fast {
         resource.name.clone()
+      } else {
+        get_name!(follow resource, client, lang)
       },
     ));
   }
@@ -318,10 +321,10 @@ pub async fn get_evolution_details(
   if let Some(resource) = &details.region {
     result.push(format!(
       "region: {}",
-      if !fast {
-        get_name!(follow resource, client, lang)
-      } else {
+      if fast {
         resource.name.clone()
+      } else {
+        get_name!(follow resource, client, lang)
       },
     ));
   }

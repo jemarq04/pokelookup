@@ -1,3 +1,6 @@
+#![allow(clippy::cast_possible_wrap)]
+#![allow(clippy::cast_precision_loss)]
+
 mod varieties;
 pub use varieties::print_varieties;
 

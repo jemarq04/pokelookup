@@ -4,31 +4,29 @@ use crate::utils::cli;
 use clap::error::ErrorKind;
 use rustemon::Follow;
 use rustemon::client::RustemonClient;
-use rustemon::pokemon::*;
+use rustemon::pokemon::pokemon_species;
 
 pub async fn print_varieties(
   client: &RustemonClient,
   args: ListArgs,
 ) -> Result<Vec<String>, clap::Error> {
   // Create pokemon species resource
-  let species = match pokemon_species::get_by_name(&args.pokemon.replace(' ', "-"), client).await {
-    Ok(x) => x,
-    Err(_) => {
-      return Err(cli::error(
-        ErrorKind::InvalidValue,
-        format!("invalid pokemon species: {}", args.pokemon),
-      ));
-    },
+  let Ok(species) = pokemon_species::get_by_name(&args.pokemon.replace(' ', "-"), client).await
+  else {
+    return Err(cli::error(
+      ErrorKind::InvalidValue,
+      format!("invalid pokemon species: {}", args.pokemon),
+    ));
   };
 
   // Return varieties
   let mut result = Vec::new();
   result.push(format!(
     "{}:",
-    if !args.fast {
-      get_name!(species, client, args.lang.to_string())
-    } else {
+    if args.fast {
       species.name.clone()
+    } else {
+      get_name!(species, client, args.lang.to_string())
     }
   ));
   species
@@ -48,7 +46,7 @@ mod tests {
   async fn test_varieties() {
     let client = RustemonClient::default();
 
-    for fast in vec![false, true].into_iter() {
+    for fast in [false, true] {
       let args = ListArgs {
         pokemon: String::from("meowth"),
         fast,
