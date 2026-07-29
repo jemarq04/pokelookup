@@ -42,23 +42,7 @@ pub struct Cli {
 pub enum Command {
   /// Look up the varieties of a given pokemon.
   #[command(name = "list", long_about)]
-  ListCmd {
-    #[arg(help = "name of pokemon species")]
-    pokemon: String,
-
-    #[arg(short, long, help = "skip API requests for formatted names")]
-    fast: bool,
-
-    #[arg(value_enum,
-      short = 'L',
-      long,
-      value_name = "LANGUAGE",
-      default_value_t = LanguageId::En,
-      hide_possible_values=true,
-      help = "language ID for API requests for formatted names"
-    )]
-    lang: LanguageId,
-  },
+  ListCmd(ListArgs),
 
   /// Look up the type(s) of a given pokemon.
   #[command(name = "types", long_about)]
