@@ -34,18 +34,14 @@ pub async fn print_encounters(
     Version::TheIndigoDiskViolet,
   ];
 
-  let mut versions = vec![args.version];
-  if args.with_dlc {
-    if sword_versions.contains(&args.version) {
-      versions = sword_versions;
-    } else if shield_versions.contains(&args.version) {
-      versions = shield_versions;
-    } else if scarlet_versions.contains(&args.version) {
-      versions = scarlet_versions;
-    } else if violet_versions.contains(&args.version) {
-      versions = violet_versions;
-    }
-  }
+  let versions = match args.version {
+    _ if !args.with_dlc => vec![args.version],
+    Version::Sword => sword_versions,
+    Version::Shield => shield_versions,
+    Version::Scarlet => scarlet_versions,
+    Version::Violet => violet_versions,
+    _ => vec![args.version],
+  };
 
   // Create pokemon resources
   let resources = match helpers::get_pokemon_from_chain(client, &args.pokemon, args.recursive).await
