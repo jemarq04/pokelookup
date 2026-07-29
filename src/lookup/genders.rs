@@ -1,6 +1,5 @@
 use crate::get_name;
-use crate::utils::cli;
-use crate::utils::enums::LanguageId;
+use crate::utils::cli::{self, GenderArgs};
 use clap::error::ErrorKind;
 use rustemon::Follow;
 use rustemon::client::RustemonClient;
@@ -8,17 +7,15 @@ use rustemon::pokemon::*;
 
 pub async fn print_genders(
   client: &RustemonClient,
-  pokemon: &str,
-  fast: bool,
-  lang: LanguageId,
+  args: GenderArgs,
 ) -> Result<Vec<String>, clap::Error> {
   // Create pokemon species resource
-  let species = match pokemon_species::get_by_name(&pokemon.replace(" ", "-"), client).await {
+  let species = match pokemon_species::get_by_name(&args.pokemon.replace(" ", "-"), client).await {
     Ok(x) => x,
     Err(_) => {
       return Err(cli::error(
         ErrorKind::InvalidValue,
-        format!("invalid pokemon species: {pokemon}"),
+        format!("invalid pokemon species: {}", args.pokemon),
       ));
     },
   };
@@ -27,8 +24,8 @@ pub async fn print_genders(
   let mut result = Vec::new();
   result.push(format!(
     "{}:",
-    if !fast {
-      get_name!(species, client, lang.to_string())
+    if !args.fast {
+      get_name!(species, client, args.lang.to_string())
     } else {
       species.name.clone()
     }
@@ -47,16 +44,20 @@ pub async fn print_genders(
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::utils::enums::LanguageId;
 
   #[tokio::test]
   async fn test_genders() {
     let client = RustemonClient::default();
 
     for fast in vec![false, true].into_iter() {
-      let pokemon = String::from("meowth");
-      let lang = LanguageId::En;
+      let args = GenderArgs {
+        pokemon: String::from("meowth"),
+        fast,
+        lang: LanguageId::En,
+      };
 
-      match print_genders(&client, &pokemon, fast, lang).await {
+      match print_genders(&client, args).await {
         Ok(s) => assert_eq!(
           s,
           vec![

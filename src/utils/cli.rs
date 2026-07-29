@@ -73,23 +73,7 @@ pub enum Command {
 
   /// Look up the gender ratio of a given pokemon species.
   #[command(name = "genders", long_about)]
-  GenderCmd {
-    #[arg(help = "name of pokemon species")]
-    pokemon: String,
-
-    #[arg(short, long, help = "skip API requests for formatted names")]
-    fast: bool,
-
-    #[arg(value_enum,
-      short = 'L',
-      long,
-      value_name = "LANGUAGE",
-      default_value_t = LanguageId::En,
-      hide_possible_values=true,
-      help = "language ID for API requests for formatted names"
-    )]
-    lang: LanguageId,
-  },
+  GenderCmd(GenderArgs),
 
   /// Look up the encounters for a given pokemon and version.
   #[command(name = "encounters", long_about)]
