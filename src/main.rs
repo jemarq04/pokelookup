@@ -47,11 +47,7 @@ async fn main() {
     Command::TypeCmd(args) => lookup::print_types(&client, args).await,
     Command::AbilityCmd(args) => lookup::print_abilities(&client, args).await,
     Command::MoveCmd(args) => lookup::print_moves(&client, args).await,
-    Command::EggCmd {
-      pokemon,
-      fast,
-      lang,
-    } => lookup::print_eggs(&client, &pokemon, fast, lang).await,
+    Command::EggCmd(args) => lookup::print_eggs(&client, args).await,
     Command::GenderCmd {
       pokemon,
       fast,
