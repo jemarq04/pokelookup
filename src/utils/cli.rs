@@ -77,32 +77,7 @@ pub enum Command {
 
   /// Look up the encounters for a given pokemon and version.
   #[command(name = "encounters", long_about)]
-  EncounterCmd {
-    #[arg(value_enum, hide_possible_values = true, help = "name of version")]
-    version: Version,
-
-    #[arg(help = "name of pokemon")]
-    pokemon: String,
-
-    #[arg(short, long, help = "skip API requests for formatted names")]
-    fast: bool,
-
-    #[arg(value_enum,
-      short = 'L',
-      long,
-      value_name = "LANGUAGE",
-      default_value_t = LanguageId::En,
-      hide_possible_values=true,
-      help = "language ID for API requests for formatted names"
-    )]
-    lang: LanguageId,
-
-    #[arg(short, help = "recursively check evolution chain")]
-    recursive: bool,
-
-    #[arg(short, long, help = "condense output by only showing location areas")]
-    condensed: bool,
-  },
+  EncounterCmd(EncounterArgs),
 
   /// Look up evolution chain for a given pokemon species.
   #[command(name = "evolutions", long_about)]
