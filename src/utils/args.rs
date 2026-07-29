@@ -227,6 +227,7 @@ pub struct MatchupArgs {
   pub lang: LanguageId,
 }
 
+#[cfg(feature = "web")]
 #[derive(Args, Debug)]
 pub struct WebArgs {
   #[command(flatten)]
