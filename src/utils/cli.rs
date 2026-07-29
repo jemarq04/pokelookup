@@ -10,8 +10,8 @@ pub const ERROR: Style = AnsiColor::Red.on_default().effects(Effects::BOLD);
 pub const VALID: Style = AnsiColor::Cyan.on_default().effects(Effects::BOLD);
 pub const INVALID: Style = AnsiColor::Yellow.on_default().effects(Effects::BOLD);
 
-/// Cargo's color style
-/// [source](https://github.com/crate-ci/clap-cargo/blob/master/src/style.rs)
+// Cargo's color style
+// [source](https://github.com/crate-ci/clap-cargo/blob/master/src/style.rs)
 const CARGO_STYLING: Styles = Styles::styled()
   .header(HEADER)
   .usage(USAGE)
@@ -20,6 +20,10 @@ const CARGO_STYLING: Styles = Styles::styled()
   .error(ERROR)
   .valid(VALID)
   .invalid(INVALID);
+
+// ========================================================================================================================
+// CLI Parser and Subcommands
+// ========================================================================================================================
 
 /// Look up pokemon details using PokeAPI using the 'rustemon' wrapper. Note that sometimes pokemon need to be listed
 /// with their forms if the form is distinct enough (e.g. pumkaboo-small or toxtricity-amped). These varieties can be
@@ -93,7 +97,10 @@ pub enum Command {
   WebCmd(WebArgs),
 }
 
-// Arguments for each subcommand
+// ========================================================================================================================
+// Subcommand Arguments
+// ========================================================================================================================
+
 #[derive(Args, Debug)]
 pub struct ListArgs {
   #[arg(help = "name of pokemon species")]
@@ -384,6 +391,10 @@ pub enum DexMode {
   Abilitydex(String),
   Itemdex(String),
 }
+
+// ========================================================================================================================
+// Helper Functions
+// ========================================================================================================================
 
 pub fn get_appname() -> String {
   String::from(Cli::command().get_name())
