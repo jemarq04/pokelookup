@@ -55,26 +55,7 @@ pub enum Command {
     about = "Look up the abilities of a given pokemon",
     long_about
   )]
-  AbilityCmd {
-    #[arg(help = "name of pokemon")]
-    pokemon: String,
-
-    #[arg(short, long, help = "skip API requests for formatted names")]
-    fast: bool,
-
-    #[arg(value_enum,
-      short = 'L',
-      long,
-      value_name = "LANGUAGE",
-      default_value_t = LanguageId::En,
-      hide_possible_values=true,
-      help = "language ID for API requests for formatted names"
-    )]
-    lang: LanguageId,
-
-    #[arg(short, help = "recursively check evolution chain")]
-    recursive: bool,
-  },
+  AbilityCmd(AbilityArgs),
 
   /// Look up the level-up moveset of a given pokemon. If a level is provided
   /// then the four moves at or below the given level are provided. By default, this will
