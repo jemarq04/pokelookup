@@ -1,6 +1,7 @@
 use crate::get_name;
 use crate::utils::args::EncounterArgs;
 use crate::utils::cli;
+use crate::utils::enums::Version;
 use crate::utils::helpers;
 use clap::error::ErrorKind;
 use rustemon::Follow;
@@ -11,6 +12,37 @@ pub async fn print_encounters(
   client: &RustemonClient,
   args: EncounterArgs,
 ) -> Result<Vec<String>, clap::Error> {
+  // Determine allowed versions
+  let sword_versions = vec![
+    Version::Sword,
+    Version::TheIsleOfArmorSword,
+    Version::TheCrownTundraSword,
+  ];
+  let shield_versions = vec![
+    Version::Shield,
+    Version::TheIsleOfArmorShield,
+    Version::TheCrownTundraShield,
+  ];
+  let scarlet_versions = vec![
+    Version::Scarlet,
+    Version::TheTealMaskScarlet,
+    Version::TheIndigoDiskScarlet,
+  ];
+  let violet_versions = vec![
+    Version::Violet,
+    Version::TheTealMaskViolet,
+    Version::TheIndigoDiskViolet,
+  ];
+
+  let versions = match args.version {
+    _ if !args.with_dlc => vec![args.version],
+    Version::Sword => sword_versions,
+    Version::Shield => shield_versions,
+    Version::Scarlet => scarlet_versions,
+    Version::Violet => violet_versions,
+    _ => vec![args.version],
+  };
+
   // Create pokemon resources
   let resources = match helpers::get_pokemon_from_chain(client, &args.pokemon, args.recursive).await
   {
@@ -50,7 +82,10 @@ pub async fn print_encounters(
     let mut encounter_names = Vec::new();
     for enc in encounters.iter() {
       for det in enc.version_details.iter() {
-        if det.version.name == args.version.to_string() {
+        if versions
+          .iter()
+          .any(|vers| vers.to_string() == det.version.name)
+        {
           let name = if !args.fast {
             get_name!(follow enc.location_area, client, args.lang.to_string())
           } else {
@@ -107,6 +142,7 @@ pub async fn print_encounters(
         mon_resource.name.clone()
       }
     ));
+    encounter_names.sort();
     encounter_names
       .into_iter()
       .for_each(|name| result.push(format!(" - {name}")));
@@ -118,7 +154,7 @@ pub async fn print_encounters(
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::utils::enums::{LanguageId, Version};
+  use crate::utils::enums::LanguageId;
 
   #[tokio::test]
   async fn test_encounters() {
@@ -127,27 +163,27 @@ mod tests {
     let success = vec![
       vec![
         "machop:",
-        " - rock-tunnel-1f",
-        " - rock-tunnel-b1f",
         " - kanto-victory-road-2-1f",
         " - kanto-victory-road-2-2f",
         " - kanto-victory-road-2-3f",
+        " - mt-ember-1f-cave-behind-team-rocket",
         " - mt-ember-area",
         " - mt-ember-cave",
         " - mt-ember-inside",
-        " - mt-ember-1f-cave-behind-team-rocket",
+        " - rock-tunnel-1f",
+        " - rock-tunnel-b1f",
       ],
       vec![
         "Machop:",
+        " - Mount Ember",
+        " - Mount Ember (1F, cave behind team rocket)",
+        " - Mount Ember (cave)",
+        " - Mount Ember (inside)",
         " - Rock Tunnel (1F)",
         " - Rock Tunnel (B1F)",
         " - Victory Road 2 (1F)",
         " - Victory Road 2 (2F)",
         " - Victory Road 2 (3F)",
-        " - Mount Ember",
-        " - Mount Ember (cave)",
-        " - Mount Ember (inside)",
-        " - Mount Ember (1F, cave behind team rocket)",
       ],
     ];
 
@@ -159,6 +195,7 @@ mod tests {
         lang: LanguageId::En,
         recursive: false,
         condensed: true,
+        with_dlc: false,
       };
 
       match print_encounters(&client, args).await {
@@ -174,30 +211,30 @@ mod tests {
 
     let success = vec![
       "goldeen:",
-      " - viridian-city-area",
-      " - fuchsia-city-area",
-      " - kanto-route-6-area",
-      " - kanto-route-22-area",
-      " - kanto-route-25-area",
+      " - berry-forest-area",
+      " - cape-brink-area",
       " - cerulean-cave-1f",
       " - cerulean-cave-b1f",
-      " - kanto-route-23-area",
-      " - kanto-safari-zone-middle",
-      " - kanto-safari-zone-area-1-east",
-      " - kanto-safari-zone-area-2-north",
-      " - kanto-safari-zone-area-3-west",
-      " - berry-forest-area",
-      " - icefall-cave-entrance",
-      " - cape-brink-area",
-      " - ruin-valley-area",
       " - four-island-area",
-      "seaking:",
       " - fuchsia-city-area",
-      " - kanto-safari-zone-middle",
+      " - icefall-cave-entrance",
+      " - kanto-route-22-area",
+      " - kanto-route-23-area",
+      " - kanto-route-25-area",
+      " - kanto-route-6-area",
       " - kanto-safari-zone-area-1-east",
       " - kanto-safari-zone-area-2-north",
       " - kanto-safari-zone-area-3-west",
+      " - kanto-safari-zone-middle",
+      " - ruin-valley-area",
+      " - viridian-city-area",
+      "seaking:",
       " - berry-forest-area",
+      " - fuchsia-city-area",
+      " - kanto-safari-zone-area-1-east",
+      " - kanto-safari-zone-area-2-north",
+      " - kanto-safari-zone-area-3-west",
+      " - kanto-safari-zone-middle",
     ];
 
     let args = EncounterArgs {
@@ -207,6 +244,7 @@ mod tests {
       lang: LanguageId::En,
       recursive: true,
       condensed: true,
+      with_dlc: false,
     };
 
     match print_encounters(&client, args).await {
@@ -221,23 +259,23 @@ mod tests {
 
     let success = vec![
       "skwovet:",
+      " - bridge-field-max-den-e\n   * max-raid",
+      " - dappled-grove-area\n   * berry-trees",
+      " - east-lake-axewell-max-den-c\n   * max-raid",
       " - galar-route-1-area\n   * overworld\n   * walk",
       " - galar-route-2-main\n   * overworld",
       " - galar-route-3-east\n   * berry-trees",
       " - galar-route-4-area\n   * berry-trees",
       " - galar-route-5-area\n   * berry-trees",
-      " - dappled-grove-area\n   * berry-trees",
+      " - motostoke-pokemon-center\n   * npc-trade",
       " - motostoke-riverbank-area\n   * berry-trees",
+      " - motostoke-riverbank-max-den-a\n   * max-raid",
       " - north-lake-miloch-area\n   * berry-trees",
       " - rolling-fields-main\n   * berry-trees",
-      " - slumbering-weald-main\n   * overworld\n   * walk",
-      " - watchtower-ruins-area\n   * berry-trees",
-      " - motostoke-pokemon-center\n   * npc-trade",
       " - rolling-fields-max-den-a\n   * max-raid",
-      " - east-lake-axewell-max-den-c\n   * max-raid",
-      " - motostoke-riverbank-max-den-a\n   * max-raid",
-      " - bridge-field-max-den-e\n   * max-raid",
+      " - slumbering-weald-main\n   * overworld\n   * walk",
       " - stony-wilderness-max-den-a\n   * max-raid",
+      " - watchtower-ruins-area\n   * berry-trees",
     ];
 
     let args = EncounterArgs {
@@ -247,6 +285,7 @@ mod tests {
       lang: LanguageId::En,
       recursive: false,
       condensed: false,
+      with_dlc: false,
     };
 
     match print_encounters(&client, args).await {

@@ -161,6 +161,9 @@ pub struct EncounterArgs {
 
   #[arg(short, long, help = "condense output by only showing location areas")]
   pub condensed: bool,
+
+  #[arg(long, help = "include version's DLCs in search for encounters")]
+  pub with_dlc: bool,
 }
 
 #[derive(Args, Debug)]
