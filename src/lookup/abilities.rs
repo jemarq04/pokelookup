@@ -1,5 +1,6 @@
 use crate::get_name;
-use crate::utils::cli::{self, AbilityArgs};
+use crate::utils::args::AbilityArgs;
+use crate::utils::cli;
 use crate::utils::helpers;
 use clap::error::ErrorKind;
 use futures::future;

@@ -1,5 +1,6 @@
 use crate::get_name;
-use crate::utils::cli::{self, MatchupArgs};
+use crate::utils::args::MatchupArgs;
+use crate::utils::cli;
 use clap::error::ErrorKind;
 use itertools::izip;
 use rustemon::Follow;

@@ -1,5 +1,6 @@
 use crate::get_name;
-use crate::utils::cli::{self, GenderArgs};
+use crate::utils::args::GenderArgs;
+use crate::utils::cli;
 use clap::error::ErrorKind;
 use rustemon::Follow;
 use rustemon::client::RustemonClient;

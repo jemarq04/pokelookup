@@ -1,5 +1,6 @@
 use crate::get_name;
-use crate::utils::cli::{self, EggArgs};
+use crate::utils::args::EggArgs;
+use crate::utils::cli;
 use clap::error::ErrorKind;
 use futures::future;
 use rustemon::Follow;

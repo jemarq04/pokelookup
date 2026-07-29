@@ -9,7 +9,7 @@ use utils::cli::{Cli, Command, get_appname};
 #[cfg(feature = "web")]
 use clap::error::ErrorKind;
 #[cfg(feature = "web")]
-use utils::{cli, cli::DexMode};
+use utils::{args::DexMode, cli};
 
 #[tokio::main]
 async fn main() {

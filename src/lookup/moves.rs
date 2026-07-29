@@ -1,5 +1,6 @@
 use crate::get_name;
-use crate::utils::cli::{self, MoveArgs};
+use crate::utils::args::MoveArgs;
+use crate::utils::cli;
 use crate::utils::helpers;
 use clap::error::ErrorKind;
 use rustemon::Follow;

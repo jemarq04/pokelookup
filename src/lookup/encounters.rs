@@ -1,5 +1,6 @@
 use crate::get_name;
-use crate::utils::cli::{self, EncounterArgs};
+use crate::utils::args::EncounterArgs;
+use crate::utils::cli;
 use crate::utils::helpers;
 use clap::error::ErrorKind;
 use rustemon::Follow;

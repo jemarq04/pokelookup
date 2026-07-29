@@ -1,5 +1,6 @@
 use crate::get_name;
-use crate::utils::cli::{self, ListArgs};
+use crate::utils::args::ListArgs;
+use crate::utils::cli;
 use clap::error::ErrorKind;
 use rustemon::Follow;
 use rustemon::client::RustemonClient;
