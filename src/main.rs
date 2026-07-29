@@ -44,13 +44,7 @@ async fn main() {
   // Call the appropriate subcommand for results
   let result = match args.command {
     Command::ListCmd(args) => lookup::print_varieties(&client, args).await,
-    Command::TypeCmd {
-      pokemon,
-      fast,
-      generation,
-      lang,
-      recursive,
-    } => lookup::print_types(&client, &pokemon, generation, fast, lang, recursive).await,
+    Command::TypeCmd(args) => lookup::print_types(&client, args).await,
     Command::AbilityCmd {
       pokemon,
       fast,

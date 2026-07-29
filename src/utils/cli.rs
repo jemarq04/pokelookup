@@ -46,29 +46,7 @@ pub enum Command {
 
   /// Look up the type(s) of a given pokemon.
   #[command(name = "types", long_about)]
-  TypeCmd {
-    #[arg(help = "name of pokemon")]
-    pokemon: String,
-
-    #[arg(short, long, help = "skip API requests for formatted names")]
-    fast: bool,
-
-    #[arg(short, long = "gen", help = "generation to query")]
-    generation: Option<i64>,
-
-    #[arg(value_enum,
-      short = 'L',
-      long,
-      value_name = "LANGUAGE",
-      default_value_t = LanguageId::En,
-      hide_possible_values=true,
-      help = "language ID for API requests for formatted names"
-    )]
-    lang: LanguageId,
-
-    #[arg(short, help = "recursively check evolution chain")]
-    recursive: bool,
-  },
+  TypeCmd(TypeArgs),
 
   /// Look up the abilities of a given pokemon. If the ability is a hidden ability, it will be
   /// marked accordingly.
