@@ -90,19 +90,22 @@ pub enum Command {
   /// Open web pages for a given endpoint. A valid endpoint includes pokemon, abilities, items, and more.
   #[cfg(feature = "web")]
   #[command(name = "web", long_about)]
-  WebCmd {
-    #[command(flatten)]
-    endpoint: Endpoints,
+  WebCmd(WebArgs),
+}
 
-    #[arg(short = 'A', long, help = "name of area within region")]
-    area: Option<String>,
+#[derive(Args, Debug)]
+pub struct WebArgs {
+  #[command(flatten)]
+  pub endpoint: Endpoints,
 
-    #[arg(short, long = "gen", help = "optional name of generation to use")]
-    generation: Option<i64>,
+  #[arg(short = 'A', long, help = "name of area within region")]
+  pub area: Option<String>,
 
-    #[arg(short, long, help = "suppress print statements")]
-    quiet: bool,
-  },
+  #[arg(short, long = "gen", help = "optional name of generation to use")]
+  pub generation: Option<i64>,
+
+  #[arg(short, long, help = "suppress print statements")]
+  pub quiet: bool,
 }
 
 #[cfg(feature = "web")]

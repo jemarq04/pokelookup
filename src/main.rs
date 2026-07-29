@@ -53,23 +53,18 @@ async fn main() {
     Command::EvolutionCmd(args) => lookup::print_evolutions(&client, args).await,
     Command::MatchupCmd(args) => lookup::print_matchups(&client, args).await,
     #[cfg(feature = "web")]
-    Command::WebCmd {
-      endpoint,
-      generation,
-      area,
-      quiet,
-    } => {
-      let url = match endpoint.get_mode() {
-        DexMode::Pokedex(name) => lookup::dex::open_pokedex(name, generation),
-        DexMode::Pokearth(name) => lookup::dex::open_pokearth(name, area, generation),
-        DexMode::Attackdex(name) => lookup::dex::open_attackdex(name, generation),
+    Command::WebCmd(args) => {
+      let url = match args.endpoint.get_mode() {
+        DexMode::Pokedex(name) => lookup::dex::open_pokedex(name, args.generation),
+        DexMode::Pokearth(name) => lookup::dex::open_pokearth(name, args.area, args.generation),
+        DexMode::Attackdex(name) => lookup::dex::open_attackdex(name, args.generation),
         DexMode::Abilitydex(name) => lookup::dex::open_abilitydex(name),
         DexMode::Itemdex(name) => lookup::dex::open_itemdex(name),
       };
       match url {
         Ok(url) => match open::that(&url) {
           Ok(_) => {
-            if quiet {
+            if args.quiet {
               return;
             }
             Ok(svec!["Opened page successfully."])
