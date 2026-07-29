@@ -81,33 +81,7 @@ pub enum Command {
 
   /// Look up evolution chain for a given pokemon species.
   #[command(name = "evolutions", long_about)]
-  EvolutionCmd {
-    #[arg(help = "name of pokemon species")]
-    pokemon: String,
-
-    #[arg(short, long, help = "skip API requests for formatted names")]
-    fast: bool,
-
-    #[arg(value_enum,
-      short = 'L',
-      long,
-      value_name = "LANGUAGE",
-      default_value_t = LanguageId::En,
-      hide_possible_values=true,
-      help = "language ID for API requests for formatted names"
-    )]
-    lang: LanguageId,
-
-    #[arg(
-      short,
-      long,
-      help = "hide the names of the pokemon in the evolution chain"
-    )]
-    secret: bool,
-
-    #[arg(short, long, help = "show all evolution chains, even outdated ones")]
-    all: bool,
-  },
+  EvolutionCmd(EvolutionArgs),
 
   /// Look up the type weaknesses/resistances for given type(s).
   #[command(name = "matchups", long_about)]
