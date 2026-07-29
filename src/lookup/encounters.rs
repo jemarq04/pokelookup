@@ -142,6 +142,7 @@ pub async fn print_encounters(
         mon_resource.name.clone()
       }
     ));
+    encounter_names.sort();
     encounter_names
       .into_iter()
       .for_each(|name| result.push(format!(" - {name}")));
