@@ -15,7 +15,43 @@ pub async fn print_encounters(
   lang: LanguageId,
   recursive: bool,
   condensed: bool,
+  include_dlcs: bool,
 ) -> Result<Vec<String>, clap::Error> {
+  // Determine allowed versions
+  let sword_versions = vec![
+    Version::Sword,
+    Version::TheIsleOfArmorSword,
+    Version::TheCrownTundraSword,
+  ];
+  let shield_versions = vec![
+    Version::Shield,
+    Version::TheIsleOfArmorShield,
+    Version::TheCrownTundraShield,
+  ];
+  let scarlet_versions = vec![
+    Version::Scarlet,
+    Version::TheTealMaskScarlet,
+    Version::TheIndigoDiskScarlet,
+  ];
+  let violet_versions = vec![
+    Version::Violet,
+    Version::TheTealMaskViolet,
+    Version::TheIndigoDiskViolet,
+  ];
+
+  let mut versions = vec![version];
+  if include_dlcs {
+    if sword_versions.contains(&version) {
+      versions = sword_versions;
+    } else if shield_versions.contains(&version) {
+      versions = shield_versions;
+    } else if scarlet_versions.contains(&version) {
+      versions = scarlet_versions;
+    } else if violet_versions.contains(&version) {
+      versions = violet_versions;
+    }
+  }
+
   // Create pokemon resources
   let resources = match helpers::get_pokemon_from_chain(client, pokemon, recursive).await {
     Ok(x) => x,
@@ -53,7 +89,10 @@ pub async fn print_encounters(
     let mut encounter_names = Vec::new();
     for enc in encounters.iter() {
       for det in enc.version_details.iter() {
-        if det.version.name == version.to_string() {
+        if versions
+          .iter()
+          .any(|vers| vers.to_string() == det.version.name)
+        {
           let name = if !fast {
             get_name!(follow enc.location_area, client, lang.to_string())
           } else {
@@ -160,8 +199,13 @@ mod tests {
       let lang = LanguageId::En;
       let recursive = false;
       let condensed = true;
+      let include_dlcs = false;
 
-      match print_encounters(&client, version, &pokemon, fast, lang, recursive, condensed).await {
+      match print_encounters(
+        &client, version, &pokemon, fast, lang, recursive, condensed, include_dlcs,
+      )
+      .await
+      {
         Ok(res) => assert_eq!(res, vals),
         Err(err) => panic!("{}", err.render()),
       }
@@ -206,8 +250,13 @@ mod tests {
     let lang = LanguageId::En;
     let recursive = true;
     let condensed = true;
+    let include_dlcs = false;
 
-    match print_encounters(&client, version, &pokemon, fast, lang, recursive, condensed).await {
+    match print_encounters(
+      &client, version, &pokemon, fast, lang, recursive, condensed, include_dlcs,
+    )
+    .await
+    {
       Ok(res) => assert_eq!(res, success),
       Err(err) => panic!("{}", err.render()),
     }
@@ -244,8 +293,13 @@ mod tests {
     let lang = LanguageId::En;
     let recursive = false;
     let condensed = false;
+    let include_dlcs = false;
 
-    match print_encounters(&client, version, &pokemon, fast, lang, recursive, condensed).await {
+    match print_encounters(
+      &client, version, &pokemon, fast, lang, recursive, condensed, include_dlcs,
+    )
+    .await
+    {
       Ok(res) => assert_eq!(res, success),
       Err(err) => panic!("{}", err.render()),
     }

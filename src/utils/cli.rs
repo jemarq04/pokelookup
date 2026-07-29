@@ -214,6 +214,12 @@ pub enum SubArgs {
 
     #[arg(short, long, help = "condense output by only showing location areas")]
     condensed: bool,
+
+    #[arg(
+      long,
+      help = "include DLCs in search for encounters (e.g. The Crown Tundra"
+    )]
+    include_dlcs: bool,
   },
 
   /// Look up evolution chain for a given pokemon species.

@@ -85,8 +85,12 @@ async fn main() {
       lang,
       recursive,
       condensed,
+      include_dlcs,
     } => {
-      lookup::print_encounters(&client, version, &pokemon, fast, lang, recursive, condensed).await
+      lookup::print_encounters(
+        &client, version, &pokemon, fast, lang, recursive, condensed, include_dlcs,
+      )
+      .await
     },
     SubArgs::EvolutionCmd {
       pokemon,
