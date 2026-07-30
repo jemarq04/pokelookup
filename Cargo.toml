@@ -13,7 +13,7 @@ keywords = ["pokemon", "pokeapi", "pokedex"]
 [dependencies]
 clap = { version = "4.5.43", features = ["derive"] }
 futures = "0.3.31"
-itertools = "0.14.0"
+itertools = "0.15.0"
 open = { version = "5.3.2", optional = true }
 rustemon = "=4.6.0"
 serde_json = "1.0.142"
