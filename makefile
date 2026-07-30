@@ -22,5 +22,8 @@ test-full:
 lint:
 	cargo clippy --all-features --all-targets -- -Dwarnings
 
+lint-pedantic:
+	cargo clippy --all-features --all-targets -- -Wclippy::pedantic
+
 format:
 	cargo fmt

@@ -1,46 +1,38 @@
 use crate::get_name;
+use crate::utils::args::EvolutionArgs;
 use crate::utils::cli;
-use crate::utils::enums::LanguageId;
 use crate::utils::helpers;
 use clap::error::ErrorKind;
 use rustemon::Follow;
 use rustemon::client::RustemonClient;
-use rustemon::pokemon::*;
+use rustemon::pokemon::pokemon_species;
+use std::fmt::Write;
 
 pub async fn print_evolutions(
   client: &RustemonClient,
-  pokemon: &str,
-  fast: bool,
-  lang: LanguageId,
-  secret: bool,
-  all: bool,
+  args: EvolutionArgs,
 ) -> Result<Vec<String>, clap::Error> {
   // Create pokemon species resource
-  let species = match pokemon_species::get_by_name(&pokemon.replace(" ", "-"), client).await {
-    Ok(x) => x,
-    Err(_) => {
-      return Err(cli::error(
-        ErrorKind::InvalidValue,
-        format!("invalid pokemon species: {pokemon}"),
-      ));
-    },
+  let Ok(species) = pokemon_species::get_by_name(&args.pokemon.replace(' ', "-"), client).await
+  else {
+    return Err(cli::error(
+      ErrorKind::InvalidValue,
+      format!("invalid pokemon species: {}", args.pokemon),
+    ));
   };
 
   // Iterate over evolution chain, if present
   let mut result: Vec<String> = Vec::new();
   if let Some(chain_resource) = species.evolution_chain {
     // Get evolution chain resource
-    let chain = match chain_resource.follow(client).await {
-      Ok(x) => x,
-      Err(_) => {
-        return Err(cli::error(
-          ErrorKind::InvalidValue,
-          format!(
-            "API error: could not retrieve evolution chain for {}",
-            species.name,
-          ),
-        ));
-      },
+    let Ok(chain) = chain_resource.follow(client).await else {
+      return Err(cli::error(
+        ErrorKind::InvalidValue,
+        format!(
+          "API error: could not retrieve evolution chain for {}",
+          species.name,
+        ),
+      ));
     };
 
     if chain.chain.evolves_to.is_empty() {
@@ -49,15 +41,15 @@ pub async fn print_evolutions(
         helpers::get_evolution_name(
           client,
           &chain.chain.species,
-          &lang.to_string(),
-          fast,
-          secret,
+          &args.lang.to_string(),
+          args.fast,
+          args.secret,
         )
         .await,
       );
     }
 
-    for evo1 in chain.chain.evolves_to.iter() {
+    for evo1 in &chain.chain.evolves_to {
       if evo1.evolution_details.is_empty() {
         // Unknown evolution detail
         result.push(format!(
@@ -65,16 +57,23 @@ pub async fn print_evolutions(
           helpers::get_evolution_name(
             client,
             &chain.chain.species,
-            &lang.to_string(),
-            fast,
-            secret,
+            &args.lang.to_string(),
+            args.fast,
+            args.secret,
           )
           .await,
-          helpers::get_evolution_name(client, &evo1.species, &lang.to_string(), fast, secret).await,
+          helpers::get_evolution_name(
+            client,
+            &evo1.species,
+            &args.lang.to_string(),
+            args.fast,
+            args.secret
+          )
+          .await,
         ));
       } else {
-        for details1 in evo1.evolution_details.iter() {
-          if !all && !details1.is_default {
+        for details1 in &evo1.evolution_details {
+          if !args.all && !details1.is_default {
             continue;
           }
 
@@ -82,84 +81,94 @@ pub async fn print_evolutions(
             "{} -> {}",
             if let Some(base_form_resource) = &details1.base_form {
               let base_form = base_form_resource.follow(client).await.unwrap();
-              helpers::get_pokemon_name(client, &base_form, &lang.to_string()).await
+              helpers::get_pokemon_name(client, &base_form, &args.lang.to_string()).await
             } else {
               helpers::get_evolution_name(
                 client,
                 &chain.chain.species,
-                &lang.to_string(),
-                fast,
-                secret,
+                &args.lang.to_string(),
+                args.fast,
+                args.secret,
               )
               .await
             },
-            if !fast {
-              get_name!(follow details1.trigger, client, lang.to_string())
-            } else {
+            if args.fast {
               details1.trigger.name.clone()
+            } else {
+              get_name!(follow details1.trigger, client, args.lang.to_string())
             },
           ));
 
-          if let Some(details_str) =
-            helpers::get_evolution_details(client, details1, &lang.to_string(), fast || secret)
-              .await
+          if let Some(details_str) = helpers::get_evolution_details(
+            client,
+            details1,
+            &args.lang.to_string(),
+            args.fast || args.secret,
+          )
+          .await
           {
-            result
-              .last_mut()
-              .unwrap()
-              .push_str(&format!(" ({details_str})"));
+            let _ = write!(result.last_mut().unwrap(), " ({details_str})");
           }
 
-          result.last_mut().unwrap().push_str(&format!(
+          let _ = write!(
+            result.last_mut().unwrap(),
             " -> {}",
             if let Some(evolved_form_resource) = &details1.evolved_form {
               let evolved_form = evolved_form_resource.follow(client).await.unwrap();
-              helpers::get_pokemon_name(client, &evolved_form, &lang.to_string()).await
+              helpers::get_pokemon_name(client, &evolved_form, &args.lang.to_string()).await
             } else {
-              helpers::get_evolution_name(client, &evo1.species, &lang.to_string(), fast, secret)
-                .await
+              helpers::get_evolution_name(
+                client,
+                &evo1.species,
+                &args.lang.to_string(),
+                args.fast,
+                args.secret,
+              )
+              .await
             }
-          ));
+          );
 
           // Check for second evolution
           let mut first_evo2 = true;
           let curr_steps = result.last().unwrap().clone();
-          for evo2 in evo1.evolves_to.iter() {
-            for details2 in evo2.evolution_details.iter() {
-              if !all && !details2.is_default {
+          for evo2 in &evo1.evolves_to {
+            for details2 in &evo2.evolution_details {
+              if !args.all && !details2.is_default {
                 continue;
               }
               let mut temp_steps: String = format!(
                 " -> {}",
-                if !fast {
-                  get_name!(follow details2.trigger, client, lang.to_string())
-                } else {
+                if args.fast {
                   details2.trigger.name.clone()
+                } else {
+                  get_name!(follow details2.trigger, client, args.lang.to_string())
                 }
               );
 
               if let Some(details_str) =
-                helpers::get_evolution_details(client, details2, &lang.to_string(), fast).await
+                helpers::get_evolution_details(client, details2, &args.lang.to_string(), args.fast)
+                  .await
               {
-                temp_steps.push_str(&format!(" ({details_str})"));
+                let _ = write!(temp_steps, " ({details_str})");
               }
 
-              temp_steps.push_str(&format!(
+              let _ = write!(
+                temp_steps,
                 " -> {}",
                 if let Some(evolved_form_resource) = &details2.evolved_form {
                   let evolved_form = evolved_form_resource.follow(client).await.unwrap();
-                  helpers::get_pokemon_name(client, &evolved_form, &lang.to_string()).await
+                  helpers::get_pokemon_name(client, &evolved_form, &args.lang.to_string()).await
                 } else {
                   helpers::get_evolution_name(
                     client,
                     &evo2.species,
-                    &lang.to_string(),
-                    fast,
-                    secret,
+                    &args.lang.to_string(),
+                    args.fast,
+                    args.secret,
                   )
                   .await
                 }
-              ));
+              );
 
               if first_evo2 {
                 result.last_mut().unwrap().push_str(&temp_steps);
@@ -174,12 +183,12 @@ pub async fn print_evolutions(
     }
   } else {
     // No chain found => record species name to final result
-    result.push(if secret {
+    result.push(if args.secret {
       String::from("???")
-    } else if fast {
+    } else if args.fast {
       species.name.clone()
     } else {
-      get_name!(species, client, lang.to_string())
+      get_name!(species, client, args.lang.to_string())
     });
   }
 
@@ -189,6 +198,7 @@ pub async fn print_evolutions(
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::utils::enums::LanguageId;
 
   #[tokio::test]
   async fn test_evolutions() {
@@ -240,13 +250,15 @@ mod tests {
     ];
 
     for (idx, vals) in success.into_iter().enumerate() {
-      let pokemon = String::from("Eevee");
-      let fast = idx == 0;
-      let lang = LanguageId::En;
-      let secret = false;
-      let all = true;
+      let args = EvolutionArgs {
+        pokemon: String::from("eevee"),
+        fast: idx == 0,
+        lang: LanguageId::En,
+        secret: false,
+        all: true,
+      };
 
-      match print_evolutions(&client, &pokemon, fast, lang, secret, all).await {
+      match print_evolutions(&client, args).await {
         Ok(res) => assert_eq!(res, vals),
         Err(err) => panic!("{}", err.render()),
       }
@@ -279,13 +291,15 @@ mod tests {
       "MON -> level-up (known_move_type: fairy, min_happiness: 160) -> MON",
     ];
 
-    let pokemon = String::from("Eevee");
-    let fast = true;
-    let lang = LanguageId::En;
-    let secret = true;
-    let all = true;
+    let args = EvolutionArgs {
+      pokemon: String::from("eevee"),
+      fast: true,
+      lang: LanguageId::En,
+      secret: true,
+      all: true,
+    };
 
-    match print_evolutions(&client, &pokemon, fast, lang, secret, all).await {
+    match print_evolutions(&client, args).await {
       Ok(res) => assert_eq!(res, success),
       Err(err) => panic!("{}", err.render()),
     }
@@ -317,13 +331,15 @@ mod tests {
       "Eevee -> level-up (known_move_type: Hada, min_happiness: 160) -> Sylveon",
     ];
 
-    let pokemon = String::from("Eevee");
-    let fast = false;
-    let lang = LanguageId::Es;
-    let secret = false;
-    let all = true;
+    let args = EvolutionArgs {
+      pokemon: String::from("eevee"),
+      fast: false,
+      lang: LanguageId::Es,
+      secret: false,
+      all: true,
+    };
 
-    match print_evolutions(&client, &pokemon, fast, lang, secret, all).await {
+    match print_evolutions(&client, args).await {
       Ok(res) => assert_eq!(res, success),
       Err(err) => panic!("{}", err.render()),
     }
@@ -344,13 +360,15 @@ mod tests {
       "Eevee -> Level up (known_move_type: Fairy, min_happiness: 160) -> Sylveon",
     ];
 
-    let pokemon = String::from("Eevee");
-    let fast = false;
-    let lang = LanguageId::En;
-    let secret = false;
-    let all = false;
+    let args = EvolutionArgs {
+      pokemon: String::from("eevee"),
+      fast: false,
+      lang: LanguageId::En,
+      secret: false,
+      all: false,
+    };
 
-    match print_evolutions(&client, &pokemon, fast, lang, secret, all).await {
+    match print_evolutions(&client, args).await {
       Ok(res) => assert_eq!(res, success),
       Err(err) => panic!("{}", err.render()),
     }
@@ -365,13 +383,15 @@ mod tests {
       "Alolan Rattata -> Level up (min_level: 20, time_of_day: night) -> Alolan Raticate",
     ];
 
-    let pokemon = String::from("Rattata");
-    let fast = false;
-    let lang = LanguageId::En;
-    let secret = false;
-    let all = false;
+    let args = EvolutionArgs {
+      pokemon: String::from("rattata"),
+      fast: false,
+      lang: LanguageId::En,
+      secret: false,
+      all: false,
+    };
 
-    match print_evolutions(&client, &pokemon, fast, lang, secret, all).await {
+    match print_evolutions(&client, args).await {
       Ok(res) => assert_eq!(res, success),
       Err(err) => panic!("{}", err.render()),
     }

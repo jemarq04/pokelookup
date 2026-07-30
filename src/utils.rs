@@ -1,3 +1,6 @@
+#![allow(clippy::struct_excessive_bools)]
+
+pub mod args;
 pub mod cli;
 pub mod enums;
 pub mod helpers;
@@ -29,7 +32,7 @@ macro_rules! get_name {
   ( follow $T:expr, $client:ident, $lang:expr ) => {{
     let mut result = $T.name.clone();
     if let Ok(resource) = $T.follow(&$client).await {
-      for name in resource.names.iter() {
+      for name in &resource.names {
         if let Ok(item) = name.language.follow(&$client).await
           && item.name == $lang
         {
@@ -41,7 +44,7 @@ macro_rules! get_name {
   }};
   ( $T:expr, $client:ident, $lang:expr ) => {{
     let mut result = $T.name.clone();
-    for name in $T.names.iter() {
+    for name in &$T.names {
       if let Ok(item) = name.language.follow(&$client).await
         && item.name == $lang
       {
@@ -73,7 +76,6 @@ mod tests {
     for c in name.chars() {
       if c == '-' {
         first_char_in_word = true;
-        continue;
       } else if first_char_in_word {
         result.push(c.to_uppercase().next().unwrap());
         first_char_in_word = false;
@@ -138,7 +140,7 @@ mod tests {
           last_line = line.clone();
         }
       },
-    };
+    }
 
     // Generate ValueEnums from respective endpoints
     let derive_line = last_line;
@@ -148,9 +150,9 @@ mod tests {
     let all_resources = rustemon::games::version_group::get_all_entries(&client)
       .await
       .unwrap();
-    all_resources
-      .iter()
-      .for_each(|x| write_line(&format!("  {},", kebab_to_pascal(&x.name))));
+    for resource in all_resources {
+      write_line(&format!("  {},", kebab_to_pascal(&resource.name)));
+    }
     write_line("}\nimpl_Display!(VersionGroup);\n");
 
     // -> Version
@@ -159,9 +161,9 @@ mod tests {
     let all_resources = rustemon::games::version::get_all_entries(&client)
       .await
       .unwrap();
-    all_resources
-      .iter()
-      .for_each(|x| write_line(&format!("  {},", kebab_to_pascal(&x.name))));
+    for resource in all_resources {
+      write_line(&format!("  {},", kebab_to_pascal(&resource.name)));
+    }
     write_line("}\nimpl_Display!(Version);\n");
 
     // -> Type
@@ -170,7 +172,7 @@ mod tests {
     let all_resources = rustemon::pokemon::type_::get_all_entries(&client)
       .await
       .unwrap();
-    for resource in all_resources.iter() {
+    for resource in &all_resources {
       let name = resource.name.clone();
       if name == "shadow" || name == "stellar" || name == "unknown" {
         continue;
@@ -185,7 +187,7 @@ mod tests {
     let all_resources = rustemon::utility::language::get_all_entries(&client)
       .await
       .unwrap();
-    for resource in all_resources.iter() {
+    for resource in &all_resources {
       let name = resource.name.clone();
       let mut alias = String::new();
       for c in name.chars() {
@@ -218,6 +220,6 @@ mod tests {
           );
         }
       },
-    };
+    }
   }
 }

@@ -1,72 +1,105 @@
 use crate::get_name;
+use crate::utils::args::EncounterArgs;
 use crate::utils::cli;
-use crate::utils::enums::{LanguageId, Version};
+use crate::utils::enums::Version;
 use crate::utils::helpers;
 use clap::error::ErrorKind;
 use rustemon::Follow;
 use rustemon::client::RustemonClient;
 use rustemon::model::encounters::EncounterMethod;
 
+fn get_versions(version: Version) -> Vec<Version> {
+  let sword_versions = vec![
+    Version::Sword,
+    Version::TheIsleOfArmorSword,
+    Version::TheCrownTundraSword,
+  ];
+  let shield_versions = vec![
+    Version::Shield,
+    Version::TheIsleOfArmorShield,
+    Version::TheCrownTundraShield,
+  ];
+  let scarlet_versions = vec![
+    Version::Scarlet,
+    Version::TheTealMaskScarlet,
+    Version::TheIndigoDiskScarlet,
+  ];
+  let violet_versions = vec![
+    Version::Violet,
+    Version::TheTealMaskViolet,
+    Version::TheIndigoDiskViolet,
+  ];
+
+  match version {
+    Version::Sword => sword_versions,
+    Version::Shield => shield_versions,
+    Version::Scarlet => scarlet_versions,
+    Version::Violet => violet_versions,
+    _ => vec![version],
+  }
+}
+
 pub async fn print_encounters(
   client: &RustemonClient,
-  version: Version,
-  pokemon: &str,
-  fast: bool,
-  lang: LanguageId,
-  recursive: bool,
-  condensed: bool,
+  args: EncounterArgs,
 ) -> Result<Vec<String>, clap::Error> {
+  // Determine allowed versions
+  let versions = if args.with_dlc {
+    get_versions(args.version)
+  } else {
+    vec![args.version]
+  };
+
   // Create pokemon resources
-  let resources = match helpers::get_pokemon_from_chain(client, pokemon, recursive).await {
-    Ok(x) => x,
-    Err(_) => {
-      let valid = cli::VALID;
-      let err = cli::error(
-        ErrorKind::InvalidValue,
-        format!(
-          "invalid pokemon: {pokemon}\n\n{valid}tip:{valid:#} try running '{} list {pokemon}'",
-          cli::get_appname()
-        ),
-      );
-      return Err(err);
-    },
+  let Ok(resources) = helpers::get_pokemon_from_chain(client, &args.pokemon, args.recursive).await
+  else {
+    let valid = cli::VALID;
+    let err = cli::error(
+      ErrorKind::InvalidValue,
+      format!(
+        "invalid pokemon: {1}\n\n{valid}tip:{valid:#} try running '{} list {}'",
+        cli::get_appname(),
+        args.pokemon,
+      ),
+    );
+    return Err(err);
   };
 
   // Iterate over all requested pokemon
   let mut result = Vec::new();
-  for mon_resource in resources.iter() {
+  for mon_resource in &resources {
     // Get encounter resources
-    let encounters = match helpers::follow_encounters(mon_resource) {
-      Ok(x) => x,
-      Err(_) => {
-        return Err(cli::error(
-          ErrorKind::InvalidValue,
-          format!(
-            "API error: could not follow url for encounters for {}",
-            mon_resource.name
-          ),
-        ));
-      },
+    let Ok(encounters) = helpers::follow_encounters(mon_resource) else {
+      return Err(cli::error(
+        ErrorKind::InvalidValue,
+        format!(
+          "API error: could not follow url for encounters for {}",
+          mon_resource.name
+        ),
+      ));
     };
 
     // Get location area names
     let mut encounter_names = Vec::new();
-    for enc in encounters.iter() {
-      for det in enc.version_details.iter() {
-        if det.version.name == version.to_string() {
-          let name = if !fast {
-            get_name!(follow enc.location_area, client, lang.to_string())
-          } else {
+    for enc in &encounters {
+      for det in &enc.version_details {
+        if versions
+          .iter()
+          .any(|vers| vers.to_string() == det.version.name)
+        {
+          let name = if args.fast {
             enc.location_area.name.clone()
+          } else {
+            get_name!(follow enc.location_area, client, args.lang.to_string())
           };
-          if condensed {
+          if args.condensed {
             encounter_names.push(name);
           } else {
             let mut temp_details = Vec::new();
             temp_details.push(name);
 
             let mut encounter_methods: Vec<EncounterMethod> = Vec::new();
-            for enc_details in det.encounter_details.iter() {
+            for enc_details in &det.encounter_details {
               if let Ok(encounter_method) = enc_details.method.follow(client).await
                 && encounter_methods
                   .iter()
@@ -76,13 +109,13 @@ pub async fn print_encounters(
               }
             }
 
-            for method in encounter_methods.iter() {
+            for method in &encounter_methods {
               temp_details.push(format!(
                 "   * {}",
-                if !fast {
-                  get_name!(method, client, lang.to_string())
-                } else {
+                if args.fast {
                   method.name.clone()
+                } else {
+                  get_name!(method, client, args.lang.to_string())
                 }
               ));
             }
@@ -104,15 +137,16 @@ pub async fn print_encounters(
     // Return location areas
     result.push(format!(
       "{}:",
-      if !fast {
-        helpers::get_pokemon_name(client, mon_resource, &lang.to_string()).await
-      } else {
+      if args.fast {
         mon_resource.name.clone()
+      } else {
+        helpers::get_pokemon_name(client, mon_resource, &args.lang.to_string()).await
       }
     ));
-    encounter_names
-      .into_iter()
-      .for_each(|name| result.push(format!(" - {name}")));
+    encounter_names.sort();
+    for name in encounter_names {
+      result.push(format!(" - {name}"));
+    }
   }
 
   Ok(result)
@@ -121,6 +155,7 @@ pub async fn print_encounters(
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::utils::enums::LanguageId;
 
   #[tokio::test]
   async fn test_encounters() {
@@ -129,39 +164,42 @@ mod tests {
     let success = vec![
       vec![
         "machop:",
-        " - rock-tunnel-1f",
-        " - rock-tunnel-b1f",
         " - kanto-victory-road-2-1f",
         " - kanto-victory-road-2-2f",
         " - kanto-victory-road-2-3f",
+        " - mt-ember-1f-cave-behind-team-rocket",
         " - mt-ember-area",
         " - mt-ember-cave",
         " - mt-ember-inside",
-        " - mt-ember-1f-cave-behind-team-rocket",
+        " - rock-tunnel-1f",
+        " - rock-tunnel-b1f",
       ],
       vec![
         "Machop:",
+        " - Mount Ember",
+        " - Mount Ember (1F, cave behind team rocket)",
+        " - Mount Ember (cave)",
+        " - Mount Ember (inside)",
         " - Rock Tunnel (1F)",
         " - Rock Tunnel (B1F)",
         " - Victory Road 2 (1F)",
         " - Victory Road 2 (2F)",
         " - Victory Road 2 (3F)",
-        " - Mount Ember",
-        " - Mount Ember (cave)",
-        " - Mount Ember (inside)",
-        " - Mount Ember (1F, cave behind team rocket)",
       ],
     ];
 
     for (idx, vals) in success.into_iter().enumerate() {
-      let version = Version::Firered;
-      let pokemon = String::from("machop");
-      let fast = idx == 0;
-      let lang = LanguageId::En;
-      let recursive = false;
-      let condensed = true;
+      let args = EncounterArgs {
+        version: Version::Firered,
+        pokemon: String::from("machop"),
+        fast: idx == 0,
+        lang: LanguageId::En,
+        recursive: false,
+        condensed: true,
+        with_dlc: false,
+      };
 
-      match print_encounters(&client, version, &pokemon, fast, lang, recursive, condensed).await {
+      match print_encounters(&client, args).await {
         Ok(res) => assert_eq!(res, vals),
         Err(err) => panic!("{}", err.render()),
       }
@@ -174,40 +212,43 @@ mod tests {
 
     let success = vec![
       "goldeen:",
-      " - viridian-city-area",
-      " - fuchsia-city-area",
-      " - kanto-route-6-area",
-      " - kanto-route-22-area",
-      " - kanto-route-25-area",
+      " - berry-forest-area",
+      " - cape-brink-area",
       " - cerulean-cave-1f",
       " - cerulean-cave-b1f",
-      " - kanto-route-23-area",
-      " - kanto-safari-zone-middle",
-      " - kanto-safari-zone-area-1-east",
-      " - kanto-safari-zone-area-2-north",
-      " - kanto-safari-zone-area-3-west",
-      " - berry-forest-area",
-      " - icefall-cave-entrance",
-      " - cape-brink-area",
-      " - ruin-valley-area",
       " - four-island-area",
-      "seaking:",
       " - fuchsia-city-area",
-      " - kanto-safari-zone-middle",
+      " - icefall-cave-entrance",
+      " - kanto-route-22-area",
+      " - kanto-route-23-area",
+      " - kanto-route-25-area",
+      " - kanto-route-6-area",
       " - kanto-safari-zone-area-1-east",
       " - kanto-safari-zone-area-2-north",
       " - kanto-safari-zone-area-3-west",
+      " - kanto-safari-zone-middle",
+      " - ruin-valley-area",
+      " - viridian-city-area",
+      "seaking:",
       " - berry-forest-area",
+      " - fuchsia-city-area",
+      " - kanto-safari-zone-area-1-east",
+      " - kanto-safari-zone-area-2-north",
+      " - kanto-safari-zone-area-3-west",
+      " - kanto-safari-zone-middle",
     ];
 
-    let version = Version::Firered;
-    let pokemon = String::from("goldeen");
-    let fast = true;
-    let lang = LanguageId::En;
-    let recursive = true;
-    let condensed = true;
+    let args = EncounterArgs {
+      version: Version::Firered,
+      pokemon: String::from("goldeen"),
+      fast: true,
+      lang: LanguageId::En,
+      recursive: true,
+      condensed: true,
+      with_dlc: false,
+    };
 
-    match print_encounters(&client, version, &pokemon, fast, lang, recursive, condensed).await {
+    match print_encounters(&client, args).await {
       Ok(res) => assert_eq!(res, success),
       Err(err) => panic!("{}", err.render()),
     }
@@ -219,33 +260,36 @@ mod tests {
 
     let success = vec![
       "skwovet:",
+      " - bridge-field-max-den-e\n   * max-raid",
+      " - dappled-grove-area\n   * berry-trees",
+      " - east-lake-axewell-max-den-c\n   * max-raid",
       " - galar-route-1-area\n   * overworld\n   * walk",
       " - galar-route-2-main\n   * overworld",
       " - galar-route-3-east\n   * berry-trees",
       " - galar-route-4-area\n   * berry-trees",
       " - galar-route-5-area\n   * berry-trees",
-      " - dappled-grove-area\n   * berry-trees",
+      " - motostoke-pokemon-center\n   * npc-trade",
       " - motostoke-riverbank-area\n   * berry-trees",
+      " - motostoke-riverbank-max-den-a\n   * max-raid",
       " - north-lake-miloch-area\n   * berry-trees",
       " - rolling-fields-main\n   * berry-trees",
-      " - slumbering-weald-main\n   * overworld\n   * walk",
-      " - watchtower-ruins-area\n   * berry-trees",
-      " - motostoke-pokemon-center\n   * npc-trade",
       " - rolling-fields-max-den-a\n   * max-raid",
-      " - east-lake-axewell-max-den-c\n   * max-raid",
-      " - motostoke-riverbank-max-den-a\n   * max-raid",
-      " - bridge-field-max-den-e\n   * max-raid",
+      " - slumbering-weald-main\n   * overworld\n   * walk",
       " - stony-wilderness-max-den-a\n   * max-raid",
+      " - watchtower-ruins-area\n   * berry-trees",
     ];
 
-    let version = Version::Sword;
-    let pokemon = String::from("skwovet");
-    let fast = true;
-    let lang = LanguageId::En;
-    let recursive = false;
-    let condensed = false;
+    let args = EncounterArgs {
+      version: Version::Sword,
+      pokemon: String::from("skwovet"),
+      fast: true,
+      lang: LanguageId::En,
+      recursive: false,
+      condensed: false,
+      with_dlc: false,
+    };
 
-    match print_encounters(&client, version, &pokemon, fast, lang, recursive, condensed).await {
+    match print_encounters(&client, args).await {
       Ok(res) => assert_eq!(res, success),
       Err(err) => panic!("{}", err.render()),
     }

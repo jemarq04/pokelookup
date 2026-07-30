@@ -1,57 +1,50 @@
 use crate::get_name;
+use crate::utils::args::EggArgs;
 use crate::utils::cli;
-use crate::utils::enums::LanguageId;
 use clap::error::ErrorKind;
 use futures::future;
 use rustemon::Follow;
 use rustemon::client::RustemonClient;
-use rustemon::pokemon::*;
+use rustemon::pokemon::pokemon_species;
 
 pub async fn print_eggs(
   client: &RustemonClient,
-  pokemon: &str,
-  fast: bool,
-  lang: LanguageId,
+  args: EggArgs,
 ) -> Result<Vec<String>, clap::Error> {
   // Create pokemon species resource
-  let species = match pokemon_species::get_by_name(&pokemon.replace(" ", "-"), client).await {
-    Ok(x) => x,
-    Err(_) => {
-      return Err(cli::error(
-        ErrorKind::InvalidValue,
-        format!("invalid pokemon species: {pokemon}"),
-      ));
-    },
+  let Ok(species) = pokemon_species::get_by_name(&args.pokemon.replace(' ', "-"), client).await
+  else {
+    return Err(cli::error(
+      ErrorKind::InvalidValue,
+      format!("invalid pokemon species: {}", args.pokemon),
+    ));
   };
 
   // Get egg group resources
-  let eggs = match future::try_join_all(
+  let Ok(eggs) = future::try_join_all(
     species
       .egg_groups
       .iter()
       .map(async |g| g.follow(client).await),
   )
   .await
-  {
-    Ok(x) => x,
-    Err(_) => {
-      return Err(cli::error(
-        ErrorKind::InvalidValue,
-        format!(
-          "API error: could not retrieve egg groups for {}",
-          species.name,
-        ),
-      ));
-    },
+  else {
+    return Err(cli::error(
+      ErrorKind::InvalidValue,
+      format!(
+        "API error: could not retrieve egg groups for {}",
+        species.name,
+      ),
+    ));
   };
 
   // Get egg group names
   let mut egg_names = Vec::new();
-  for egg in eggs.iter() {
-    egg_names.push(if !fast {
-      get_name!(egg, client, lang.to_string())
-    } else {
+  for egg in &eggs {
+    egg_names.push(if args.fast {
       egg.name.clone()
+    } else {
+      get_name!(egg, client, args.lang.to_string())
     });
   }
 
@@ -59,15 +52,15 @@ pub async fn print_eggs(
   let mut result = Vec::new();
   result.push(format!(
     "{}:",
-    if !fast {
-      get_name!(species, client, lang.to_string())
-    } else {
+    if args.fast {
       species.name.clone()
+    } else {
+      get_name!(species, client, args.lang.to_string())
     }
   ));
-  egg_names
-    .iter()
-    .for_each(|name| result.push(format!(" - {name}")));
+  for name in egg_names {
+    result.push(format!(" - {name}"));
+  }
 
   Ok(result)
 }
@@ -75,6 +68,7 @@ pub async fn print_eggs(
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::utils::enums::LanguageId;
 
   #[tokio::test]
   async fn test_eggs() {
@@ -86,11 +80,13 @@ mod tests {
     ];
 
     for (idx, vals) in success.into_iter().enumerate() {
-      let pokemon = String::from("stantler");
-      let fast = idx == 0;
-      let lang = LanguageId::En;
+      let args = EggArgs {
+        pokemon: String::from("stantler"),
+        fast: idx == 0,
+        lang: LanguageId::En,
+      };
 
-      match print_eggs(&client, &pokemon, fast, lang).await {
+      match print_eggs(&client, args).await {
         Ok(res) => assert_eq!(res, vals),
         Err(err) => panic!("{}", err.render()),
       }
