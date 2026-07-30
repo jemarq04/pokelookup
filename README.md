@@ -54,4 +54,5 @@ from [Serebii](https://www.serebii.net/) based on the query provided. To enable 
 
 ## Contributing
 
-Contributions and feedback is welcome! Feel free to open a PR or add an issue in the Issues tab.
+Contributions and feedback is welcome! Feel free to open a PR or add an issue in the Issues tab. When making PRs, make sure you branch off
+and merge from the `dev` branch -- they will be brought into the `main` branch later on.
