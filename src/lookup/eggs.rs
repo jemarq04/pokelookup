@@ -5,51 +5,46 @@ use clap::error::ErrorKind;
 use futures::future;
 use rustemon::Follow;
 use rustemon::client::RustemonClient;
-use rustemon::pokemon::*;
+use rustemon::pokemon::pokemon_species;
 
 pub async fn print_eggs(
   client: &RustemonClient,
   args: EggArgs,
 ) -> Result<Vec<String>, clap::Error> {
   // Create pokemon species resource
-  let species = match pokemon_species::get_by_name(&args.pokemon.replace(" ", "-"), client).await {
-    Ok(x) => x,
-    Err(_) => {
-      return Err(cli::error(
-        ErrorKind::InvalidValue,
-        format!("invalid pokemon species: {}", args.pokemon),
-      ));
-    },
+  let Ok(species) = pokemon_species::get_by_name(&args.pokemon.replace(' ', "-"), client).await
+  else {
+    return Err(cli::error(
+      ErrorKind::InvalidValue,
+      format!("invalid pokemon species: {}", args.pokemon),
+    ));
   };
 
   // Get egg group resources
-  let eggs = match future::try_join_all(
+  let Ok(eggs) = future::try_join_all(
     species
       .egg_groups
       .iter()
       .map(async |g| g.follow(client).await),
   )
   .await
-  {
-    Ok(x) => x,
-    Err(_) => {
-      return Err(cli::error(
-        ErrorKind::InvalidValue,
-        format!(
-          "API error: could not retrieve egg groups for {}",
-          species.name,
-        ),
-      ));
-    },
+  else {
+    return Err(cli::error(
+      ErrorKind::InvalidValue,
+      format!(
+        "API error: could not retrieve egg groups for {}",
+        species.name,
+      ),
+    ));
   };
 
   // Get egg group names
   let mut egg_names = Vec::new();
-  for egg in eggs.iter() {
-    egg_names.push(if !args.fast {
-      get_name!(egg, client, args.lang.to_string())
-    } else {
+  for egg in &eggs {
+    egg_names.push(if args.fast {
       egg.name.clone()
+    } else {
+      get_name!(egg, client, args.lang.to_string())
     });
   }
 
@@ -57,15 +52,15 @@ pub async fn print_eggs(
   let mut result = Vec::new();
   result.push(format!(
     "{}:",
-    if !args.fast {
-      get_name!(species, client, args.lang.to_string())
-    } else {
+    if args.fast {
       species.name.clone()
+    } else {
+      get_name!(species, client, args.lang.to_string())
     }
   ));
-  egg_names
-    .iter()
-    .for_each(|name| result.push(format!(" - {name}")));
+  for name in egg_names {
+    result.push(format!(" - {name}"));
+  }
 
   Ok(result)
 }

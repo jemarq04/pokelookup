@@ -4,33 +4,32 @@ use crate::utils::cli;
 use clap::error::ErrorKind;
 use rustemon::Follow;
 use rustemon::client::RustemonClient;
-use rustemon::pokemon::*;
+use rustemon::pokemon::pokemon_species;
 
 pub async fn print_genders(
   client: &RustemonClient,
   args: GenderArgs,
 ) -> Result<Vec<String>, clap::Error> {
   // Create pokemon species resource
-  let species = match pokemon_species::get_by_name(&args.pokemon.replace(" ", "-"), client).await {
-    Ok(x) => x,
-    Err(_) => {
-      return Err(cli::error(
-        ErrorKind::InvalidValue,
-        format!("invalid pokemon species: {}", args.pokemon),
-      ));
-    },
+  let Ok(species) = pokemon_species::get_by_name(&args.pokemon.replace(' ', "-"), client).await
+  else {
+    return Err(cli::error(
+      ErrorKind::InvalidValue,
+      format!("invalid pokemon species: {}", args.pokemon),
+    ));
   };
 
   // Return gender ratio
   let mut result = Vec::new();
   result.push(format!(
     "{}:",
-    if !args.fast {
-      get_name!(species, client, args.lang.to_string())
-    } else {
+    if args.fast {
       species.name.clone()
+    } else {
+      get_name!(species, client, args.lang.to_string())
     }
   ));
+
   let rate = species.gender_rate as f64 / 8.0 * 100.0;
   if rate < 0.0 {
     result.push(" Genderless".to_string());
@@ -51,7 +50,7 @@ mod tests {
   async fn test_genders() {
     let client = RustemonClient::default();
 
-    for fast in vec![false, true].into_iter() {
+    for fast in [false, true] {
       let args = GenderArgs {
         pokemon: String::from("meowth"),
         fast,

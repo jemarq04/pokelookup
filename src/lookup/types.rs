@@ -11,46 +11,43 @@ pub async fn print_types(
   args: TypeArgs,
 ) -> Result<Vec<String>, clap::Error> {
   // Create pokemon resources
-  let resources = match helpers::get_pokemon_from_chain(client, &args.pokemon, args.recursive).await
-  {
-    Ok(x) => x,
-    Err(_) => {
-      let valid = cli::VALID;
-      let err = cli::error(
-        ErrorKind::InvalidValue,
-        format!(
-          "invalid pokemon: {1}\n\n{valid}tip:{valid:#} try running '{} list {}'",
-          cli::get_appname(),
-          args.pokemon,
-        ),
-      );
-      return Err(err);
-    },
+  let Ok(resources) = helpers::get_pokemon_from_chain(client, &args.pokemon, args.recursive).await
+  else {
+    let valid = cli::VALID;
+    let err = cli::error(
+      ErrorKind::InvalidValue,
+      format!(
+        "invalid pokemon: {1}\n\n{valid}tip:{valid:#} try running '{} list {}'",
+        cli::get_appname(),
+        args.pokemon,
+      ),
+    );
+    return Err(err);
   };
 
   // Iterate over all requested pokemon
   let mut result = Vec::new();
-  for mon_resource in resources.iter() {
+  for mon_resource in &resources {
     // Get type names
     let mut type_names = Vec::new();
-    for item in mon_resource.types.iter() {
-      type_names.push(if !args.fast {
-        get_name!(follow item.type_, client, args.lang.to_string())
-      } else {
+    for item in &mon_resource.types {
+      type_names.push(if args.fast {
         item.type_.name.clone()
+      } else {
+        get_name!(follow item.type_, client, args.lang.to_string())
       });
     }
     if let Some(generation) = args.generation {
-      for past_item in mon_resource.past_types.iter() {
+      for past_item in &mon_resource.past_types {
         if let Ok(x) = past_item.generation.follow(client).await
           && x.id >= generation
         {
           type_names.clear();
-          for item in past_item.types.iter() {
-            type_names.push(if !args.fast {
-              get_name!(follow item.type_, client, args.lang.to_string())
-            } else {
+          for item in &past_item.types {
+            type_names.push(if args.fast {
               item.type_.name.clone()
+            } else {
+              get_name!(follow item.type_, client, args.lang.to_string())
             });
           }
         }
@@ -60,10 +57,10 @@ pub async fn print_types(
     // Return types
     result.push(format!(
       "{}:",
-      if !args.fast {
-        helpers::get_pokemon_name(client, mon_resource, &args.lang.to_string()).await
-      } else {
+      if args.fast {
         mon_resource.name.clone()
+      } else {
+        helpers::get_pokemon_name(client, mon_resource, &args.lang.to_string()).await
       }
     ));
     result.push(format!("  {}", type_names.join("/")));
@@ -83,10 +80,10 @@ mod tests {
 
     let success: Vec<String> = vec!["Toxel:", "  Electric/Poison"]
       .into_iter()
-      .map(|x| x.into())
+      .map(std::convert::Into::into)
       .collect();
 
-    for fast in [false, true].into_iter() {
+    for fast in [false, true] {
       let args = TypeArgs {
         pokemon: String::from("toxel"),
         fast,
@@ -115,7 +112,7 @@ mod tests {
 
     let success: Vec<String> = vec!["jigglypuff:", "  normal"]
       .into_iter()
-      .map(|x| x.into())
+      .map(std::convert::Into::into)
       .collect();
 
     for generation in 1..=5 {

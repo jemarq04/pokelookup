@@ -8,11 +8,7 @@ use rustemon::Follow;
 use rustemon::client::RustemonClient;
 use rustemon::model::encounters::EncounterMethod;
 
-pub async fn print_encounters(
-  client: &RustemonClient,
-  args: EncounterArgs,
-) -> Result<Vec<String>, clap::Error> {
-  // Determine allowed versions
+fn get_versions(version: Version) -> Vec<Version> {
   let sword_versions = vec![
     Version::Sword,
     Version::TheIsleOfArmorSword,
@@ -34,62 +30,67 @@ pub async fn print_encounters(
     Version::TheIndigoDiskViolet,
   ];
 
-  let versions = match args.version {
-    _ if !args.with_dlc => vec![args.version],
+  match version {
     Version::Sword => sword_versions,
     Version::Shield => shield_versions,
     Version::Scarlet => scarlet_versions,
     Version::Violet => violet_versions,
-    _ => vec![args.version],
+    _ => vec![version],
+  }
+}
+
+pub async fn print_encounters(
+  client: &RustemonClient,
+  args: EncounterArgs,
+) -> Result<Vec<String>, clap::Error> {
+  // Determine allowed versions
+  let versions = if args.with_dlc {
+    get_versions(args.version)
+  } else {
+    vec![args.version]
   };
 
   // Create pokemon resources
-  let resources = match helpers::get_pokemon_from_chain(client, &args.pokemon, args.recursive).await
-  {
-    Ok(x) => x,
-    Err(_) => {
-      let valid = cli::VALID;
-      let err = cli::error(
-        ErrorKind::InvalidValue,
-        format!(
-          "invalid pokemon: {1}\n\n{valid}tip:{valid:#} try running '{} list {}'",
-          cli::get_appname(),
-          args.pokemon,
-        ),
-      );
-      return Err(err);
-    },
+  let Ok(resources) = helpers::get_pokemon_from_chain(client, &args.pokemon, args.recursive).await
+  else {
+    let valid = cli::VALID;
+    let err = cli::error(
+      ErrorKind::InvalidValue,
+      format!(
+        "invalid pokemon: {1}\n\n{valid}tip:{valid:#} try running '{} list {}'",
+        cli::get_appname(),
+        args.pokemon,
+      ),
+    );
+    return Err(err);
   };
 
   // Iterate over all requested pokemon
   let mut result = Vec::new();
-  for mon_resource in resources.iter() {
+  for mon_resource in &resources {
     // Get encounter resources
-    let encounters = match helpers::follow_encounters(mon_resource) {
-      Ok(x) => x,
-      Err(_) => {
-        return Err(cli::error(
-          ErrorKind::InvalidValue,
-          format!(
-            "API error: could not follow url for encounters for {}",
-            mon_resource.name
-          ),
-        ));
-      },
+    let Ok(encounters) = helpers::follow_encounters(mon_resource) else {
+      return Err(cli::error(
+        ErrorKind::InvalidValue,
+        format!(
+          "API error: could not follow url for encounters for {}",
+          mon_resource.name
+        ),
+      ));
     };
 
     // Get location area names
     let mut encounter_names = Vec::new();
-    for enc in encounters.iter() {
-      for det in enc.version_details.iter() {
+    for enc in &encounters {
+      for det in &enc.version_details {
         if versions
           .iter()
           .any(|vers| vers.to_string() == det.version.name)
         {
-          let name = if !args.fast {
-            get_name!(follow enc.location_area, client, args.lang.to_string())
-          } else {
+          let name = if args.fast {
             enc.location_area.name.clone()
+          } else {
+            get_name!(follow enc.location_area, client, args.lang.to_string())
           };
           if args.condensed {
             encounter_names.push(name);
@@ -98,7 +99,7 @@ pub async fn print_encounters(
             temp_details.push(name);
 
             let mut encounter_methods: Vec<EncounterMethod> = Vec::new();
-            for enc_details in det.encounter_details.iter() {
+            for enc_details in &det.encounter_details {
               if let Ok(encounter_method) = enc_details.method.follow(client).await
                 && encounter_methods
                   .iter()
@@ -108,13 +109,13 @@ pub async fn print_encounters(
               }
             }
 
-            for method in encounter_methods.iter() {
+            for method in &encounter_methods {
               temp_details.push(format!(
                 "   * {}",
-                if !args.fast {
-                  get_name!(method, client, args.lang.to_string())
-                } else {
+                if args.fast {
                   method.name.clone()
+                } else {
+                  get_name!(method, client, args.lang.to_string())
                 }
               ));
             }
@@ -136,16 +137,16 @@ pub async fn print_encounters(
     // Return location areas
     result.push(format!(
       "{}:",
-      if !args.fast {
-        helpers::get_pokemon_name(client, mon_resource, &args.lang.to_string()).await
-      } else {
+      if args.fast {
         mon_resource.name.clone()
+      } else {
+        helpers::get_pokemon_name(client, mon_resource, &args.lang.to_string()).await
       }
     ));
     encounter_names.sort();
-    encounter_names
-      .into_iter()
-      .for_each(|name| result.push(format!(" - {name}")));
+    for name in encounter_names {
+      result.push(format!(" - {name}"));
+    }
   }
 
   Ok(result)

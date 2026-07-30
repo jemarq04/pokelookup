@@ -5,39 +5,36 @@ use crate::utils::helpers;
 use clap::error::ErrorKind;
 use rustemon::Follow;
 use rustemon::client::RustemonClient;
-use rustemon::pokemon::*;
+use rustemon::pokemon::pokemon;
 
 pub async fn print_moves(
   client: &RustemonClient,
   args: MoveArgs,
 ) -> Result<Vec<String>, clap::Error> {
-  // Create pokemon resource
-  let mon_resource = match pokemon::get_by_name(&args.pokemon.replace(" ", "-"), client).await {
-    Ok(x) => x,
-    Err(_) => {
-      let valid = cli::VALID;
-      let err = cli::error(
-        ErrorKind::InvalidValue,
-        format!(
-          "invalid pokemon: {1}\n\n{valid}tip:{valid:#} try running '{} list {}'",
-          cli::get_appname(),
-          args.pokemon,
-        ),
-      );
-      return Err(err);
-    },
-  };
-
   // Create struct to store move
   struct Move {
     name: String,
     level: i64,
   }
 
+  // Create pokemon resource
+  let Ok(mon_resource) = pokemon::get_by_name(&args.pokemon.replace(' ', "-"), client).await else {
+    let valid = cli::VALID;
+    let err = cli::error(
+      ErrorKind::InvalidValue,
+      format!(
+        "invalid pokemon: {1}\n\n{valid}tip:{valid:#} try running '{} list {}'",
+        cli::get_appname(),
+        args.pokemon,
+      ),
+    );
+    return Err(err);
+  };
+
   // Get full learnset
   let mut moves = Vec::new();
-  for move_resource in mon_resource.moves.iter() {
-    for details in move_resource.version_group_details.iter() {
+  for move_resource in &mon_resource.moves {
+    for details in &move_resource.version_group_details {
       if details.move_learn_method.name == "level-up"
         && details.version_group.name == args.vgroup.to_string()
       {
@@ -45,15 +42,15 @@ pub async fn print_moves(
           Some(x) if details.level_learned_at > x => {},
           _ => {
             moves.push(Move {
-              name: if !args.fast {
-                get_name!(follow move_resource.move_, client, args.lang.to_string())
-              } else {
+              name: if args.fast {
                 move_resource.move_.name.clone()
+              } else {
+                get_name!(follow move_resource.move_, client, args.lang.to_string())
               },
               level: details.level_learned_at,
             });
           },
-        };
+        }
       }
     }
   }
@@ -73,15 +70,15 @@ pub async fn print_moves(
   let mut result = Vec::new();
   result.push(format!(
     "{}:",
-    if !args.fast {
-      helpers::get_pokemon_name(client, &mon_resource, &args.lang.to_string()).await
-    } else {
+    if args.fast {
       mon_resource.name.clone()
+    } else {
+      helpers::get_pokemon_name(client, &mon_resource, &args.lang.to_string()).await
     }
   ));
-  moves
-    .iter()
-    .for_each(|x| result.push(format!(" - {} ({})", x.name, x.level)));
+  for m in moves {
+    result.push(format!(" - {} ({})", m.name, m.level));
+  }
 
   Ok(result)
 }
