@@ -397,21 +397,31 @@ mod tests {
     let client = RustemonClient::default();
 
     let success = vec![
-      "Rattata -> Level up (min_level: 20) -> Raticate",
-      "Alolan Rattata -> Level up (min_level: 20, time_of_day: night) -> Alolan Raticate",
+      vec![
+        "meowth -> level-up (min_level: 28) -> persian",
+        "meowth-alola -> level-up (min_happiness: 160) -> persian-alola",
+        "meowth-galar -> level-up (min_level: 28) -> perrserker",
+      ],
+      vec![
+        "Meowth -> Level up (min_level: 28) -> Persian",
+        "Alolan Meowth -> Level up (min_happiness: 160) -> Alolan Persian",
+        "Galarian Meowth -> Level up (min_level: 28) -> Perrserker",
+      ],
     ];
 
-    let args = EvolutionArgs {
-      pokemon: String::from("rattata"),
-      fast: false,
-      lang: LanguageId::En,
-      secret: false,
-      all: false,
-    };
+    for (idx, vals) in success.into_iter().enumerate() {
+      let args = EvolutionArgs {
+        pokemon: String::from("meowth"),
+        fast: idx == 0,
+        lang: LanguageId::En,
+        secret: false,
+        all: false,
+      };
 
-    match print_evolutions(&client, args).await {
-      Ok(res) => assert_eq!(res, success),
-      Err(err) => panic!("{}", err.render()),
+      match print_evolutions(&client, args).await {
+        Ok(res) => assert_eq!(res, vals),
+        Err(err) => panic!("{}", err.render()),
+      }
     }
   }
 }
