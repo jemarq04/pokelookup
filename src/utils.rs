@@ -31,9 +31,9 @@ macro_rules! svec {
 macro_rules! get_name {
   ( follow $T:expr, $client:ident, $lang:expr ) => {{
     let mut result = $T.name.clone();
-    if let Ok(resource) = $T.follow(&$client).await {
+    if let Ok(resource) = $T.follow($client).await {
       for name in &resource.names {
-        if let Ok(item) = name.language.follow(&$client).await
+        if let Ok(item) = name.language.follow($client).await
           && item.name == $lang
         {
           result = name.name.clone();
@@ -45,7 +45,7 @@ macro_rules! get_name {
   ( $T:expr, $client:ident, $lang:expr ) => {{
     let mut result = $T.name.clone();
     for name in &$T.names {
-      if let Ok(item) = name.language.follow(&$client).await
+      if let Ok(item) = name.language.follow($client).await
         && item.name == $lang
       {
         result = name.name.clone();
