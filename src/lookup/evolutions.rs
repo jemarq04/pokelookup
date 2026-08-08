@@ -79,9 +79,15 @@ pub async fn print_evolutions(
 
           result.push(format!(
             "{} -> {}",
-            if let Some(base_form_resource) = &details1.base_form {
-              let base_form = base_form_resource.follow(client).await.unwrap();
-              helpers::get_pokemon_name(client, &base_form, &args.lang.to_string()).await
+            if !args.secret
+              && let Some(base_form_resource) = &details1.base_form
+            {
+              if args.fast {
+                base_form_resource.name.clone()
+              } else {
+                let base_form = base_form_resource.follow(client).await.unwrap();
+                helpers::get_pokemon_name(client, &base_form, &args.lang.to_string()).await
+              }
             } else {
               helpers::get_evolution_name(
                 client,
@@ -113,9 +119,15 @@ pub async fn print_evolutions(
           let _ = write!(
             result.last_mut().unwrap(),
             " -> {}",
-            if let Some(evolved_form_resource) = &details1.evolved_form {
-              let evolved_form = evolved_form_resource.follow(client).await.unwrap();
-              helpers::get_pokemon_name(client, &evolved_form, &args.lang.to_string()).await
+            if !args.secret
+              && let Some(evolved_form_resource) = &details1.evolved_form
+            {
+              if args.fast {
+                evolved_form_resource.name.clone()
+              } else {
+                let evolved_form = evolved_form_resource.follow(client).await.unwrap();
+                helpers::get_pokemon_name(client, &evolved_form, &args.lang.to_string()).await
+              }
             } else {
               helpers::get_evolution_name(
                 client,
@@ -155,9 +167,15 @@ pub async fn print_evolutions(
               let _ = write!(
                 temp_steps,
                 " -> {}",
-                if let Some(evolved_form_resource) = &details2.evolved_form {
-                  let evolved_form = evolved_form_resource.follow(client).await.unwrap();
-                  helpers::get_pokemon_name(client, &evolved_form, &args.lang.to_string()).await
+                if !args.secret
+                  && let Some(evolved_form_resource) = &details2.evolved_form
+                {
+                  if args.fast {
+                    evolved_form_resource.name.clone()
+                  } else {
+                    let evolved_form = evolved_form_resource.follow(client).await.unwrap();
+                    helpers::get_pokemon_name(client, &evolved_form, &args.lang.to_string()).await
+                  }
                 } else {
                   helpers::get_evolution_name(
                     client,
