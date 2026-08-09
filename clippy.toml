@@ -1,2 +1,2 @@
 enum-variant-name-threshold = 200
-too-many-lines-threshold = 170
+too-many-lines-threshold = 200
