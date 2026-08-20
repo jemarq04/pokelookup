@@ -12,7 +12,7 @@ pub async fn print_abilities(
   args: AbilityArgs,
 ) -> Result<Vec<String>, clap::Error> {
   // Create struct to store ability
-  struct Ability {
+  struct AbilitySlot {
     hidden: bool,
     slot: i64,
     ability: rustemon::model::pokemon::Ability,
@@ -39,7 +39,7 @@ pub async fn print_abilities(
     // Get ability resources
     let Ok(mut abilities) = future::try_join_all(mon_resource.abilities.iter().map(async |a| {
       match a.ability.clone().unwrap().follow(client).await {
-        Ok(x) => Ok(Ability {
+        Ok(x) => Ok(AbilitySlot {
           hidden: a.is_hidden,
           slot: a.slot,
           ability: x,
