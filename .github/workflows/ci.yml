@@ -17,21 +17,21 @@ jobs:
     name: Formatting
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: cargo fmt --check
 
   lint:
     name: Linting
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: cargo clippy --all-features --all-targets -- -Dwarnings
 
   test:
     name: Testing
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Building
         run: cargo build
       - name: Building (full)
@@ -43,6 +43,6 @@ jobs:
     name: Testing installation
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Installing
         run: cargo install --all-features --path .
