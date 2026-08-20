@@ -14,6 +14,7 @@ pub async fn print_abilities(
   // Create struct to store ability
   struct Ability {
     hidden: bool,
+    slot: i64,
     ability: rustemon::model::pokemon::Ability,
   }
 
@@ -36,10 +37,11 @@ pub async fn print_abilities(
   let mut result = Vec::new();
   for mon_resource in &resources {
     // Get ability resources
-    let Ok(abilities) = future::try_join_all(mon_resource.abilities.iter().map(async |a| {
+    let Ok(mut abilities) = future::try_join_all(mon_resource.abilities.iter().map(async |a| {
       match a.ability.clone().unwrap().follow(client).await {
         Ok(x) => Ok(Ability {
           hidden: a.is_hidden,
+          slot: a.slot,
           ability: x,
         }),
         Err(_) => Err(()),
@@ -55,6 +57,9 @@ pub async fn print_abilities(
         ),
       ));
     };
+
+    // Sort by slot number
+    abilities.sort_by_key(|ab| ab.slot);
 
     // Get ability names
     let mut names = Vec::new();
