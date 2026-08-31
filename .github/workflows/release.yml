@@ -42,7 +42,7 @@ jobs:
 
       - name: Verify tag matches project's current version
         run: |
-          if ! [[ ${tag_name} = $(grep "^version" Cargo.toml | sed -r "s/version = \"(.*)\"/\1/")* ]]; then
+          if ! [[ ${tag_name} = v$(grep "^version" Cargo.toml | sed -r "s/version = \"(.*)\"/\1/")* ]]; then
             echo "error: requested tag name does not match Cargo.toml"
             exit 1
           fi
