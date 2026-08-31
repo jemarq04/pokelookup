@@ -1,0 +1,104 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: "Tag name for release"
+        required: true
+  push:
+    tags:
+      - v[0-9]+.[0-9]+.[0-9]+
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      tag_name: ${{ steps.get_tag.outputs.tag_name }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Save tag from trigger 'workflow_dispatch'
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          if ! [[ ${TAG_NAME} =~ ^v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+            echo "error: requested tag name invalid"
+            exit 1
+          fi
+          echo "tag_name=${TAG_NAME}" >> $GITHUB_ENV
+        env:
+          TAG_NAME: ${{ github.event.inputs.tag_name }}
+
+      - name: Save tag from trigger 'push'
+        if: github.event_name == 'push'
+        run: echo "tag_name=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+
+      - name: Verify tag matches project's current version
+        run: |
+          if ! [[ ${tag_name} = v$(grep "^version" Cargo.toml | sed -r "s/version = \"(.*)\"/\1/")* ]]; then
+            echo "error: requested tag name does not match Cargo.toml"
+            exit 1
+          fi
+          echo "tag_name=${tag_name}" >> $GITHUB_ENV
+
+      - name: Save tag name
+        id: get_tag
+        run: echo "tag_name=${tag_name}" >> $GITHUB_OUTPUT
+
+  build:
+    needs: setup
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - build: linux
+            runner: ubuntu-latest
+            target: i686-unknown-linux-gnu
+            outname: linux-x86_64
+          - build: linux
+            runner: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            outname: linux-aarch64
+          - build: macos
+            runner: macos-latest
+            target: x86_64-apple-darwin
+            outname: macos-x86_64
+          - build: macos
+            runner: macos-latest
+            target: aarch64-apple-darwin
+            outname: macos-aarch64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v7
+      - run: cargo build --all-features --release && mv target/release/pokelookup pokelookup-$OUTNAME
+        env:
+          OUTNAME: ${{ matrix.outname }}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: out-${{ matrix.outname }}
+          path: pokelookup-${{ matrix.outname }}
+          retention-days: 1
+
+  publish:
+    needs: [setup, build]
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    env:
+      GH_REPO: ${{ github.repository }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+      - name: Publish release
+        run: |
+          gh release create $TAG_NAME --title "pokelookup $TAG_NAME" --target $GITHUB_SHA --generate-notes out-*/*
+        env:
+          TAG_NAME: ${{ needs.setup.outputs.tag_name }}
