@@ -104,9 +104,11 @@ jobs:
           TAG_NAME: ${{ needs.setup.outputs.tag_name }}
 
   cargo-publish:
+    needs: setup
     runs-on: ubuntu-latest
+    if: ${{ vars.AUTO_CARGO_PUBLISH == 'true' }}
     env:
-      CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+      CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_TOKEN }}
     steps:
       - uses: actions/checkout@v7
       - run: cargo publish --all-features
