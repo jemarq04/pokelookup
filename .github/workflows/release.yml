@@ -102,3 +102,11 @@ jobs:
           gh release create $TAG_NAME --title "pokelookup $TAG_NAME" --target $GITHUB_SHA --generate-notes out-*/*
         env:
           TAG_NAME: ${{ needs.setup.outputs.tag_name }}
+
+  cargo-publish:
+    runs-on: ubuntu-latest
+    env:
+      CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+      - run: cargo publish --all-features
