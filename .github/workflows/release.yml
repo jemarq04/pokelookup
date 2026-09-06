@@ -106,7 +106,7 @@ jobs:
   cargo-publish:
     needs: setup
     runs-on: ubuntu-latest
-    if: ${{ vars.AUTO_CARGO_PUBLISH == 'true' }}
+    if: ${{ github.event_name == 'push' && vars.AUTO_CARGO_PUBLISH == 'true' }}
     env:
       CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_TOKEN }}
     steps:
