@@ -80,13 +80,20 @@ pub async fn print_evolutions(
           result.push(format!(
             "{} -> {}",
             if !args.secret
-              && let Some(base_form_resource) = &details1.base_form
+              && let Some(required_form_resource) = &details1.required_pokemon_form
             {
               if args.fast {
-                base_form_resource.name.clone()
+                required_form_resource.name.clone()
               } else {
-                let base_form = base_form_resource.follow(client).await.unwrap();
-                helpers::get_pokemon_name(client, &base_form, &args.lang.to_string()).await
+                let required_pokemon = required_form_resource
+                  .follow(client)
+                  .await
+                  .unwrap()
+                  .pokemon
+                  .follow(client)
+                  .await
+                  .unwrap();
+                helpers::get_pokemon_name(client, &required_pokemon, &args.lang.to_string()).await
               }
             } else {
               helpers::get_evolution_name(
@@ -120,13 +127,20 @@ pub async fn print_evolutions(
             result.last_mut().unwrap(),
             " -> {}",
             if !args.secret
-              && let Some(evolved_form_resource) = &details1.evolved_form
+              && let Some(evolved_form_resource) = &details1.evolved_pokemon_form
             {
               if args.fast {
                 evolved_form_resource.name.clone()
               } else {
-                let evolved_form = evolved_form_resource.follow(client).await.unwrap();
-                helpers::get_pokemon_name(client, &evolved_form, &args.lang.to_string()).await
+                let evolved_pokemon = evolved_form_resource
+                  .follow(client)
+                  .await
+                  .unwrap()
+                  .pokemon
+                  .follow(client)
+                  .await
+                  .unwrap();
+                helpers::get_pokemon_name(client, &evolved_pokemon, &args.lang.to_string()).await
               }
             } else {
               helpers::get_evolution_name(
@@ -168,13 +182,21 @@ pub async fn print_evolutions(
                 temp_steps,
                 " -> {}",
                 if !args.secret
-                  && let Some(evolved_form_resource) = &details2.evolved_form
+                  && let Some(evolved_form_resource) = &details2.evolved_pokemon_form
                 {
                   if args.fast {
                     evolved_form_resource.name.clone()
                   } else {
-                    let evolved_form = evolved_form_resource.follow(client).await.unwrap();
-                    helpers::get_pokemon_name(client, &evolved_form, &args.lang.to_string()).await
+                    let evolved_pokemon = evolved_form_resource
+                      .follow(client)
+                      .await
+                      .unwrap()
+                      .pokemon
+                      .follow(client)
+                      .await
+                      .unwrap();
+                    helpers::get_pokemon_name(client, &evolved_pokemon, &args.lang.to_string())
+                      .await
                   }
                 } else {
                   helpers::get_evolution_name(
