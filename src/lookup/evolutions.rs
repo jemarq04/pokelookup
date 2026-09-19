@@ -446,4 +446,58 @@ mod tests {
       }
     }
   }
+
+  #[tokio::test]
+  async fn test_evolutions_allowed_natures() {
+    let client = RustemonClient::default();
+
+    let success = vec![
+      vec![
+        "toxel -> level-up (min_level: 30, allowed_natures: hardy/docile/hasty/adamant/impish/rash/jolly/naughty/lax/quirky/naive/brave/sassy) -> toxtricity-amped",
+        "toxel -> level-up (min_level: 30, allowed_natures: bold/modest/calm/timid/lonely/mild/gentle/bashful/careful/relaxed/quiet/serious) -> toxtricity-low-key",
+      ],
+      vec![
+        "Toxel -> Level up (min_level: 30, allowed_natures: Hardy/Docile/Hasty/Adamant/Impish/Rash/Jolly/Naughty/Lax/Quirky/Naive/Brave/Sassy) -> Amped Toxtricity",
+        "Toxel -> Level up (min_level: 30, allowed_natures: Bold/Modest/Calm/Timid/Lonely/Mild/Gentle/Bashful/Careful/Relaxed/Quiet/Serious) -> Low Key Toxtricity",
+      ],
+    ];
+
+    for (idx, vals) in success.into_iter().enumerate() {
+      let args = EvolutionArgs {
+        pokemon: String::from("toxel"),
+        fast: idx == 0,
+        lang: LanguageId::En,
+        secret: false,
+        all: false,
+      };
+
+      match print_evolutions(&client, args).await {
+        Ok(res) => assert_eq!(res, vals),
+        Err(err) => panic!("{}", err.render()),
+      }
+    }
+  }
+
+  #[tokio::test]
+  async fn test_evolution_condition_expressions() {
+    let client = RustemonClient::default();
+
+    let success = vec![
+      "dunsparce -> level-up (known_move: hyper-drill, percentage_chance: 99%) -> dudunsparce-two-segment",
+      "dunsparce -> level-up (known_move: hyper-drill, percentage_chance: 1%) -> dudunsparce-three-segment",
+    ];
+
+    let args = EvolutionArgs {
+      pokemon: String::from("dunsparce"),
+      fast: true,
+      lang: LanguageId::En,
+      secret: false,
+      all: false,
+    };
+
+    match print_evolutions(&client, args).await {
+      Ok(res) => assert_eq!(res, success),
+      Err(err) => panic!("{}", err.render()),
+    }
+  }
 }
