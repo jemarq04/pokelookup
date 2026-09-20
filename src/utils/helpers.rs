@@ -344,6 +344,26 @@ pub async fn get_evolution_details(
     result.push(format!("min_damage_taken: {val}"));
   }
 
+  // Check allowed natures
+  if let Some(val) = &details.allowed_natures {
+    let mut natures = Vec::new();
+    for nature_resource in val {
+      natures.push(if fast {
+        nature_resource.name.clone()
+      } else {
+        get_name!(follow nature_resource, client, lang)
+      });
+    }
+    result.push(format!("allowed_natures: {}", natures.join("/")));
+  }
+
+  // Check percentage chance
+  if let Some(expr) = &details.condition_expression
+    && let Some(val) = expr.percentage_chance
+  {
+    result.push(format!("percentage_chance: {val}%"));
+  }
+
   if result.is_empty() {
     None
   } else {

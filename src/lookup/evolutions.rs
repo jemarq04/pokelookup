@@ -80,13 +80,20 @@ pub async fn print_evolutions(
           result.push(format!(
             "{} -> {}",
             if !args.secret
-              && let Some(base_form_resource) = &details1.base_form
+              && let Some(required_form_resource) = &details1.required_pokemon_form
             {
               if args.fast {
-                base_form_resource.name.clone()
+                required_form_resource.name.clone()
               } else {
-                let base_form = base_form_resource.follow(client).await.unwrap();
-                helpers::get_pokemon_name(client, &base_form, &args.lang.to_string()).await
+                let required_pokemon = required_form_resource
+                  .follow(client)
+                  .await
+                  .unwrap()
+                  .pokemon
+                  .follow(client)
+                  .await
+                  .unwrap();
+                helpers::get_pokemon_name(client, &required_pokemon, &args.lang.to_string()).await
               }
             } else {
               helpers::get_evolution_name(
@@ -120,13 +127,20 @@ pub async fn print_evolutions(
             result.last_mut().unwrap(),
             " -> {}",
             if !args.secret
-              && let Some(evolved_form_resource) = &details1.evolved_form
+              && let Some(evolved_form_resource) = &details1.evolved_pokemon_form
             {
               if args.fast {
                 evolved_form_resource.name.clone()
               } else {
-                let evolved_form = evolved_form_resource.follow(client).await.unwrap();
-                helpers::get_pokemon_name(client, &evolved_form, &args.lang.to_string()).await
+                let evolved_pokemon = evolved_form_resource
+                  .follow(client)
+                  .await
+                  .unwrap()
+                  .pokemon
+                  .follow(client)
+                  .await
+                  .unwrap();
+                helpers::get_pokemon_name(client, &evolved_pokemon, &args.lang.to_string()).await
               }
             } else {
               helpers::get_evolution_name(
@@ -168,13 +182,21 @@ pub async fn print_evolutions(
                 temp_steps,
                 " -> {}",
                 if !args.secret
-                  && let Some(evolved_form_resource) = &details2.evolved_form
+                  && let Some(evolved_form_resource) = &details2.evolved_pokemon_form
                 {
                   if args.fast {
                     evolved_form_resource.name.clone()
                   } else {
-                    let evolved_form = evolved_form_resource.follow(client).await.unwrap();
-                    helpers::get_pokemon_name(client, &evolved_form, &args.lang.to_string()).await
+                    let evolved_pokemon = evolved_form_resource
+                      .follow(client)
+                      .await
+                      .unwrap()
+                      .pokemon
+                      .follow(client)
+                      .await
+                      .unwrap();
+                    helpers::get_pokemon_name(client, &evolved_pokemon, &args.lang.to_string())
+                      .await
                   }
                 } else {
                   helpers::get_evolution_name(
@@ -422,6 +444,60 @@ mod tests {
         Ok(res) => assert_eq!(res, vals),
         Err(err) => panic!("{}", err.render()),
       }
+    }
+  }
+
+  #[tokio::test]
+  async fn test_evolutions_allowed_natures() {
+    let client = RustemonClient::default();
+
+    let success = vec![
+      vec![
+        "toxel -> level-up (min_level: 30, allowed_natures: hardy/docile/hasty/adamant/impish/rash/jolly/naughty/lax/quirky/naive/brave/sassy) -> toxtricity-amped",
+        "toxel -> level-up (min_level: 30, allowed_natures: bold/modest/calm/timid/lonely/mild/gentle/bashful/careful/relaxed/quiet/serious) -> toxtricity-low-key",
+      ],
+      vec![
+        "Toxel -> Level up (min_level: 30, allowed_natures: Hardy/Docile/Hasty/Adamant/Impish/Rash/Jolly/Naughty/Lax/Quirky/Naive/Brave/Sassy) -> Amped Toxtricity",
+        "Toxel -> Level up (min_level: 30, allowed_natures: Bold/Modest/Calm/Timid/Lonely/Mild/Gentle/Bashful/Careful/Relaxed/Quiet/Serious) -> Low Key Toxtricity",
+      ],
+    ];
+
+    for (idx, vals) in success.into_iter().enumerate() {
+      let args = EvolutionArgs {
+        pokemon: String::from("toxel"),
+        fast: idx == 0,
+        lang: LanguageId::En,
+        secret: false,
+        all: false,
+      };
+
+      match print_evolutions(&client, args).await {
+        Ok(res) => assert_eq!(res, vals),
+        Err(err) => panic!("{}", err.render()),
+      }
+    }
+  }
+
+  #[tokio::test]
+  async fn test_evolution_condition_expressions() {
+    let client = RustemonClient::default();
+
+    let success = vec![
+      "dunsparce -> level-up (known_move: hyper-drill, percentage_chance: 99%) -> dudunsparce-two-segment",
+      "dunsparce -> level-up (known_move: hyper-drill, percentage_chance: 1%) -> dudunsparce-three-segment",
+    ];
+
+    let args = EvolutionArgs {
+      pokemon: String::from("dunsparce"),
+      fast: true,
+      lang: LanguageId::En,
+      secret: false,
+      all: false,
+    };
+
+    match print_evolutions(&client, args).await {
+      Ok(res) => assert_eq!(res, success),
+      Err(err) => panic!("{}", err.render()),
     }
   }
 }
