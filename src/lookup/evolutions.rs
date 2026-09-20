@@ -123,6 +123,10 @@ pub async fn print_evolutions(
             let _ = write!(result.last_mut().unwrap(), " ({details_str})");
           }
 
+          let evolved_form_name = match details1.evolved_pokemon_form.clone() {
+            Some(val) => val.name,
+            None => String::new(),
+          };
           let _ = write!(
             result.last_mut().unwrap(),
             " -> {}",
@@ -162,6 +166,14 @@ pub async fn print_evolutions(
               if !args.all && !details2.is_default {
                 continue;
               }
+              let required_form_name = match details2.required_pokemon_form.clone() {
+                Some(val) => val.name,
+                None => String::new(),
+              };
+              if evolved_form_name != required_form_name {
+                continue;
+              }
+
               let mut temp_steps: String = format!(
                 " -> {}",
                 if args.fast {
@@ -434,6 +446,37 @@ mod tests {
     for (idx, vals) in success.into_iter().enumerate() {
       let args = EvolutionArgs {
         pokemon: String::from("meowth"),
+        fast: idx == 0,
+        lang: LanguageId::En,
+        secret: false,
+        all: false,
+      };
+
+      match print_evolutions(&client, args).await {
+        Ok(res) => assert_eq!(res, vals),
+        Err(err) => panic!("{}", err.render()),
+      }
+    }
+  }
+
+  #[tokio::test]
+  async fn test_evolutions_regional_forms_more() {
+    let client = RustemonClient::default();
+
+    let success = vec![
+      vec![
+        "mime-jr -> level-up (known_move: mimic) -> mr-mime",
+        "mime-jr -> level-up (known_move: mimic, region: galar) -> mr-mime-galar -> level-up (min_level: 42) -> mr-rime",
+      ],
+      vec![
+        "Mime Jr. -> Level up (known_move: Mimic) -> Mr. Mime",
+        "Mime Jr. -> Level up (known_move: Mimic, region: Galar) -> Galarian Mr. Mime -> Level up (min_level: 42) -> Mr. Rime",
+      ],
+    ];
+
+    for (idx, vals) in success.into_iter().enumerate() {
+      let args = EvolutionArgs {
+        pokemon: String::from("mr-mime"),
         fast: idx == 0,
         lang: LanguageId::En,
         secret: false,
