@@ -123,6 +123,10 @@ pub async fn print_evolutions(
             let _ = write!(result.last_mut().unwrap(), " ({details_str})");
           }
 
+          let evolved_form_name = match details1.evolved_pokemon_form.clone() {
+            Some(val) => val.name,
+            None => String::new(),
+          };
           let _ = write!(
             result.last_mut().unwrap(),
             " -> {}",
@@ -162,6 +166,14 @@ pub async fn print_evolutions(
               if !args.all && !details2.is_default {
                 continue;
               }
+              let required_form_name = match details2.required_pokemon_form.clone() {
+                Some(val) => val.name,
+                None => String::new(),
+              };
+              if evolved_form_name != required_form_name {
+                continue;
+              }
+
               let mut temp_steps: String = format!(
                 " -> {}",
                 if args.fast {
