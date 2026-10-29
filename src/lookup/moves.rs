@@ -1,62 +1,56 @@
 use crate::get_name;
+use crate::utils::args::MoveArgs;
 use crate::utils::cli;
-use crate::utils::enums::{LanguageId, VersionGroup};
 use crate::utils::helpers;
 use clap::error::ErrorKind;
 use rustemon::Follow;
 use rustemon::client::RustemonClient;
-use rustemon::pokemon::*;
+use rustemon::pokemon::pokemon;
 
 pub async fn print_moves(
   client: &RustemonClient,
-  pokemon: &str,
-  fast: bool,
-  lang: LanguageId,
-  vgroup: VersionGroup,
-  level: Option<i64>,
+  args: MoveArgs,
 ) -> Result<Vec<String>, clap::Error> {
-  // Create pokemon resource
-  let mon_resource = match pokemon::get_by_name(&pokemon.replace(" ", "-"), client).await {
-    Ok(x) => x,
-    Err(_) => {
-      let valid = cli::VALID;
-      let err = cli::error(
-        ErrorKind::InvalidValue,
-        format!(
-          "invalid pokemon: {pokemon}\n\n{valid}tip:{valid:#} try running '{} list {pokemon}'",
-          cli::get_appname()
-        ),
-      );
-      return Err(err);
-    },
-  };
-
   // Create struct to store move
   struct Move {
     name: String,
     level: i64,
   }
 
+  // Create pokemon resource
+  let Ok(mon_resource) = pokemon::get_by_name(&args.pokemon.replace(' ', "-"), client).await else {
+    let valid = cli::VALID;
+    let err = cli::error(
+      ErrorKind::InvalidValue,
+      format!(
+        "invalid pokemon: {1}\n\n{valid}tip:{valid:#} try running '{} list {}'",
+        cli::get_appname(),
+        args.pokemon,
+      ),
+    );
+    return Err(err);
+  };
+
   // Get full learnset
   let mut moves = Vec::new();
-  for move_resource in mon_resource.moves.iter() {
-    for details in move_resource.version_group_details.iter() {
+  for move_resource in &mon_resource.moves {
+    for details in &move_resource.version_group_details {
       if details.move_learn_method.name == "level-up"
-        && details.version_group.name == vgroup.to_string()
+        && details.version_group.name == args.vgroup.to_string()
       {
-        match level {
+        match args.level {
           Some(x) if details.level_learned_at > x => {},
           _ => {
             moves.push(Move {
-              name: if !fast {
-                get_name!(follow move_resource.move_, client, lang.to_string())
-              } else {
+              name: if args.fast {
                 move_resource.move_.name.clone()
+              } else {
+                get_name!(follow move_resource.move_, client, args.lang.to_string())
               },
               level: details.level_learned_at,
             });
           },
-        };
+        }
       }
     }
   }
@@ -65,7 +59,7 @@ pub async fn print_moves(
   moves.sort_by_key(|m| std::cmp::Reverse(m.level));
 
   // Get current moveset (if requested)
-  let mut moves = if level.is_some() {
+  let mut moves = if args.level.is_some() {
     moves.iter().take(4).collect::<Vec<_>>()
   } else {
     moves.iter().collect::<Vec<_>>()
@@ -76,15 +70,15 @@ pub async fn print_moves(
   let mut result = Vec::new();
   result.push(format!(
     "{}:",
-    if !fast {
-      helpers::get_pokemon_name(client, &mon_resource, &lang.to_string()).await
-    } else {
+    if args.fast {
       mon_resource.name.clone()
+    } else {
+      helpers::get_pokemon_name(client, &mon_resource, &args.lang.to_string()).await
     }
   ));
-  moves
-    .iter()
-    .for_each(|x| result.push(format!(" - {} ({})", x.name, x.level)));
+  for m in moves {
+    result.push(format!(" - {} ({})", m.name, m.level));
+  }
 
   Ok(result)
 }
@@ -92,6 +86,7 @@ pub async fn print_moves(
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::utils::enums::{LanguageId, VersionGroup};
 
   #[tokio::test]
   async fn test_moves() {
@@ -111,13 +106,15 @@ mod tests {
     ];
 
     for (idx, vals) in success.into_iter().enumerate() {
-      let pokemon = String::from("quaxly");
-      let fast = idx == 0;
-      let lang = LanguageId::En;
-      let vgroup = VersionGroup::ScarletViolet;
-      let level = None;
+      let args = MoveArgs {
+        pokemon: String::from("quaxly"),
+        fast: idx == 0,
+        lang: LanguageId::En,
+        vgroup: VersionGroup::ScarletViolet,
+        level: None,
+      };
 
-      match print_moves(&client, &pokemon, fast, lang, vgroup, level).await {
+      match print_moves(&client, args).await {
         Ok(res) => assert_eq!(res, vals),
         Err(err) => panic!("{}", err.render()),
       }
@@ -133,13 +130,15 @@ mod tests {
       " - Focus Energy (28)",
     ];
 
-    let pokemon = String::from("quaxly");
-    let level = Some(30);
-    let fast = false;
-    let vgroup = VersionGroup::ScarletViolet;
-    let lang = LanguageId::En;
+    let args = MoveArgs {
+      pokemon: String::from("quaxly"),
+      fast: false,
+      lang: LanguageId::En,
+      vgroup: VersionGroup::ScarletViolet,
+      level: Some(30),
+    };
 
-    match print_moves(&client, &pokemon, fast, lang, vgroup, level).await {
+    match print_moves(&client, args).await {
       Ok(res) => assert_eq!(res, success),
       Err(err) => panic!("{}", err.render()),
     }

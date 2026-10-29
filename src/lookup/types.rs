@@ -1,6 +1,6 @@
 use crate::get_name;
+use crate::utils::args::TypeArgs;
 use crate::utils::cli;
-use crate::utils::enums::LanguageId;
 use crate::utils::helpers;
 use clap::error::ErrorKind;
 use rustemon::Follow;
@@ -8,51 +8,46 @@ use rustemon::client::RustemonClient;
 
 pub async fn print_types(
   client: &RustemonClient,
-  pokemon: &str,
-  generation: Option<i64>,
-  fast: bool,
-  lang: LanguageId,
-  recursive: bool,
+  args: TypeArgs,
 ) -> Result<Vec<String>, clap::Error> {
   // Create pokemon resources
-  let resources = match helpers::get_pokemon_from_chain(client, pokemon, recursive).await {
-    Ok(x) => x,
-    Err(_) => {
-      let valid = cli::VALID;
-      let err = cli::error(
-        ErrorKind::InvalidValue,
-        format!(
-          "invalid pokemon: {pokemon}\n\n{valid}tip:{valid:#} try running '{} list {pokemon}'",
-          cli::get_appname()
-        ),
-      );
-      return Err(err);
-    },
+  let Ok(resources) = helpers::get_pokemon_from_chain(client, &args.pokemon, args.recursive).await
+  else {
+    let valid = cli::VALID;
+    let err = cli::error(
+      ErrorKind::InvalidValue,
+      format!(
+        "invalid pokemon: {1}\n\n{valid}tip:{valid:#} try running '{} list {}'",
+        cli::get_appname(),
+        args.pokemon,
+      ),
+    );
+    return Err(err);
   };
 
   // Iterate over all requested pokemon
   let mut result = Vec::new();
-  for mon_resource in resources.iter() {
+  for mon_resource in &resources {
     // Get type names
     let mut type_names = Vec::new();
-    for item in mon_resource.types.iter() {
-      type_names.push(if !fast {
-        get_name!(follow item.type_, client, lang.to_string())
-      } else {
+    for item in &mon_resource.types {
+      type_names.push(if args.fast {
         item.type_.name.clone()
+      } else {
+        get_name!(follow item.type_, client, args.lang.to_string())
       });
     }
-    if let Some(generation) = generation {
-      for past_item in mon_resource.past_types.iter() {
+    if let Some(generation) = args.generation {
+      for past_item in &mon_resource.past_types {
         if let Ok(x) = past_item.generation.follow(client).await
           && x.id >= generation
         {
           type_names.clear();
-          for item in past_item.types.iter() {
-            type_names.push(if !fast {
-              get_name!(follow item.type_, client, lang.to_string())
-            } else {
+          for item in &past_item.types {
+            type_names.push(if args.fast {
               item.type_.name.clone()
+            } else {
+              get_name!(follow item.type_, client, args.lang.to_string())
             });
           }
         }
@@ -62,10 +57,10 @@ pub async fn print_types(
     // Return types
     result.push(format!(
       "{}:",
-      if !fast {
-        helpers::get_pokemon_name(client, mon_resource, &lang.to_string()).await
-      } else {
+      if args.fast {
         mon_resource.name.clone()
+      } else {
+        helpers::get_pokemon_name(client, mon_resource, &args.lang.to_string()).await
       }
     ));
     result.push(format!("  {}", type_names.join("/")));
@@ -77,6 +72,7 @@ pub async fn print_types(
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::utils::enums::LanguageId;
 
   #[tokio::test]
   async fn test_types() {
@@ -84,16 +80,19 @@ mod tests {
 
     let success: Vec<String> = vec!["Toxel:", "  Electric/Poison"]
       .into_iter()
-      .map(|x| x.into())
+      .map(std::convert::Into::into)
       .collect();
 
-    for fast in [false, true].into_iter() {
-      let pokemon = String::from("toxel");
-      let generation = None;
-      let lang = LanguageId::En;
-      let recursive = false;
+    for fast in [false, true] {
+      let args = TypeArgs {
+        pokemon: String::from("toxel"),
+        fast,
+        generation: None,
+        lang: LanguageId::En,
+        recursive: false,
+      };
 
-      match print_types(&client, &pokemon, generation, fast, lang, recursive).await {
+      match print_types(&client, args).await {
         Ok(s) => assert_eq!(
           s,
           if fast {
@@ -113,24 +112,25 @@ mod tests {
 
     let success: Vec<String> = vec!["jigglypuff:", "  normal"]
       .into_iter()
-      .map(|x| x.into())
+      .map(std::convert::Into::into)
       .collect();
 
     for generation in 1..=5 {
-      let pokemon = String::from("jigglypuff");
-      let generation = Some(generation);
-      let fast = true;
-      let lang = LanguageId::En;
-      let recursive = false;
+      let args = TypeArgs {
+        pokemon: String::from("jigglypuff"),
+        fast: true,
+        generation: Some(generation),
+        lang: LanguageId::En,
+        recursive: false,
+      };
 
-      match print_types(&client, &pokemon, generation, fast, lang, recursive).await {
+      match print_types(&client, args).await {
         Ok(s) => assert_eq!(
           s,
-          if fast {
-            success.iter().map(|x| x.to_lowercase()).collect()
-          } else {
-            success.clone()
-          }
+          success
+            .iter()
+            .map(|x| x.to_lowercase())
+            .collect::<Vec<String>>()
         ),
         Err(err) => panic!("{}", err.render()),
       }
@@ -142,13 +142,15 @@ mod tests {
     let client = RustemonClient::default();
 
     let success = vec!["stantler:", "  normal", "wyrdeer:", "  normal/psychic"];
-    let pokemon = String::from("stantler");
-    let generation = None;
-    let fast = true;
-    let lang = LanguageId::En;
-    let recursive = true;
+    let args = TypeArgs {
+      pokemon: String::from("stantler"),
+      fast: true,
+      generation: None,
+      lang: LanguageId::En,
+      recursive: true,
+    };
 
-    match print_types(&client, &pokemon, generation, fast, lang, recursive).await {
+    match print_types(&client, args).await {
       Ok(s) => assert_eq!(s, success),
       Err(err) => panic!("{}", err.render()),
     }

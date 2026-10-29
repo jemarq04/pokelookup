@@ -12,6 +12,9 @@ This is a package that gives an executable to help look up Pokemon details using
 
 ## Usage
 
+This package can be installed through `cargo install pokelookup ...` or by using one of the targets in the provided makefile to install
+locally. Both options use `cargo`, but the latter allows you to make any local changes for your own environment if you wish.
+
 After installing the package, run `pokelookup --help` to see all possible subcommands and options. Note that since this package uses PokeAPI
 to get its information, Pokemon will need qualifiers if there are multiple forms. For example, to look up the types for Toxtricity, you will
 need to specify which form (Amped or Low-Key). The `pokelookup list` subcommand is a way to look up varieties of a given Pokemon species for
@@ -46,9 +49,8 @@ path is `~/.cache/pokelookup`. If you want to change that, use the `--cache-dir`
 By default, this package uses the `wrap_help` feature from [`clap`](https://crates.io/crates/clap) to wrap the help and usage printouts
 based on the terminal's current width.
 
-Additionally, there is a `web` feature which can be enabled which adds an additional `pokelookup search` subcommand. This subcommand will
-open pages from [Serebii](https://www.serebii.net/) based on the query provided. To enable this, use `cargo install -F web` when installing
-the package.
+Additionally, there is a `web` feature which can be enabled which adds an additional `pokelookup web` subcommand. This subcommand will open pages
+from [Serebii](https://www.serebii.net/) based on the query provided. To enable this, use `cargo install -F web` when installing the package.
 
 ## Contributing
 
